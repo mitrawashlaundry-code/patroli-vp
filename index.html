@@ -1,0 +1,3964 @@
+<!DOCTYPE html>
+<!-- Patroli VP — Firebase Sync Build (no-photo)
+     Perubahan: el() helper, utility CSS, Firebase lazy-load, TIMING constants,
+     fungsi dipecah, section comments; + Firebase Firestore sync layer:
+     fbSet, fbSyncCollection, syncFromFirebase, setupRealtimeListeners,
+     updateSyncStatus, manualSync, _pushLocalDataToFirebase; sync indicator di header
+-->
+<html lang="id">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
+<meta name="theme-color" content="#ffc832"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="PatroliVP"/>
+<title>Patroli VP — Villa Pertiwi</title>
+<link rel="manifest" href="manifest.json"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Sora:wght@700;800;900&display=swap" rel="stylesheet"/>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/umd/lucide.min.js"></script>
+<style>
+/* ==============================
+   RESET & VARIABLES
+   ============================== */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#050d18;
+  --navy:#071428;
+  --navy2:#091930;
+  --card:#0c1d36;
+  --border:rgba(255,200,50,.12);
+  --gold:#ffc832;
+  --gold2:#ffaa00;
+  --green:#00e676;
+  --red:#ff4444;
+  --orange:#ff8c00;
+  --purple:#b478ff;
+  --blue:#4fc3f7;
+  --text:#e8f4ff;
+  --muted:#6b8aad;
+  --radius:20px;
+  --radius-sm:14px;
+}
+html,body{height:100%;width:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif}
+/* Safe area untuk notch/home indicator */
+.screen{padding-top:env(safe-area-inset-top,0)}
+.bottom-nav-wrap{padding-bottom:env(safe-area-inset-bottom,0)}
+
+/* ==============================
+   TYPOGRAPHY
+   ============================== */
+.title-hero{font-family:'Sora',sans-serif;font-weight:900;font-size:32px;line-height:1.2;color:var(--gold)}
+.title-section{font-family:'Sora',sans-serif;font-weight:800;font-size:22px;color:var(--text)}
+.body-text{font-family:'Nunito',sans-serif;font-weight:400;font-size:15px;line-height:1.7;color:var(--muted)}
+.card-info{background:rgba(79,195,247,.1);border:1px solid rgba(79,195,247,.3);border-radius:var(--radius-sm);padding:14px 16px;color:var(--blue);font-size:14px;line-height:1.6}
+
+/* ==============================
+   SCREEN SYSTEM
+   ============================== */
+.screen{position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column;overflow:hidden;z-index:10}
+.screen.active{display:flex}
+
+/* ==============================
+   ONBOARDING
+   ============================== */
+.ob-screen{position:fixed;inset:0;z-index:500;background:var(--bg);display:none;flex-direction:column}
+.ob-screen.ob-active{display:flex}
+.ob-header{padding:16px 20px 12px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border)}
+.ob-scroll{flex:1;overflow-y:auto;padding:24px 20px;-webkit-overflow-scrolling:touch}
+.ob-footer{padding:16px 20px 28px;border-top:1px solid var(--border)}
+.ob-step-bar{margin-bottom:24px}
+.ob-step-bar .step-label{font-size:12px;color:var(--muted);margin-bottom:8px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
+.ob-step-bar .step-track{height:6px;background:rgba(255,255,255,.1);border-radius:99px;overflow:hidden}
+.ob-step-bar .step-fill{height:100%;background:linear-gradient(90deg,var(--gold2),var(--gold));border-radius:99px;transition:width .4s}
+.ob-inp{width:100%;min-height:56px;background:rgba(255,255,255,.08);border:2px solid var(--gold);border-radius:var(--radius-sm);padding:0 16px;font-size:18px;color:var(--text);font-family:'Nunito',sans-serif;font-weight:700;outline:none}
+.ob-inp:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(255,200,50,.2)}
+.ob-inp::placeholder{color:var(--muted);font-weight:400}
+.ob-pin-row{display:flex;gap:10px;justify-content:center;margin:16px 0}
+.ob-pin{width:48px;height:58px;background:rgba(255,255,255,.08);border:2px solid var(--gold);border-radius:12px;text-align:center;font-size:24px;font-weight:900;color:var(--gold);font-family:'Nunito',sans-serif;outline:none}
+.ob-choice{border:2px solid rgba(255,255,255,.2);background:rgba(255,255,255,.05);border-radius:var(--radius);padding:20px;cursor:pointer;transition:all .2s;text-align:center;margin-bottom:14px}
+.ob-choice:active,.ob-choice.selected{border-color:var(--gold);background:rgba(255,200,50,.12)}
+.ob-choice .ch-icon{font-size:40px;margin-bottom:10px}
+.ob-choice .ch-title{font-size:18px;font-weight:900;color:var(--text)}
+.ob-choice .ch-desc{font-size:13px;color:var(--muted);margin-top:4px}
+.ob-btn-primary{width:100%;min-height:62px;background:linear-gradient(135deg,var(--gold2),var(--gold));border:none;border-radius:var(--radius);font-size:20px;font-weight:900;color:#1a0d00;cursor:pointer;font-family:'Nunito',sans-serif;transition:opacity .2s}
+.ob-btn-primary:active{opacity:.85}
+.ob-btn-ghost{width:100%;min-height:52px;background:transparent;border:2px solid var(--border);border-radius:var(--radius);font-size:16px;font-weight:700;color:var(--muted);cursor:pointer;font-family:'Nunito',sans-serif;margin-top:10px}
+.ob-btn-ghost:active{background:rgba(255,255,255,.05)}
+.gap-16{gap:16px}
+.mt-16{margin-top:16px}
+.mt-24{margin-top:24px}
+
+/* ==============================
+   CONFETTI
+   ============================== */
+#confetti-canvas{position:fixed;inset:0;z-index:600;pointer-events:none}
+
+/* ==============================
+   TOAST
+   ============================== */
+#toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--card);border-radius:16px;padding:14px 28px;font-size:17px;font-weight:800;color:var(--text);opacity:0;transition:all .3s;z-index:900;white-space:nowrap;max-width:90vw;text-align:center;pointer-events:none;box-shadow:0 8px 32px rgba(0,0,0,.5)}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.success{border:2px solid var(--green);color:var(--green)}
+#toast.error{border:2px solid var(--red);color:var(--red)}
+#toast.warn{border:2px solid var(--orange);color:var(--orange)}
+#toast.info{border:2px solid var(--blue);color:var(--blue)}
+
+/* ==============================
+   LOGIN SCREEN
+   ============================== */
+#screenLogin .login-logo{text-align:center;padding:40px 20px 20px}
+#screenLogin .login-logo .logo-icon{font-size:64px}
+#screenLogin .login-logo h1{font-family:'Sora',sans-serif;font-weight:900;font-size:28px;color:var(--gold);margin-top:12px}
+#screenLogin .login-logo p{color:var(--muted);font-size:14px}
+#screenLogin .login-rw{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 20px;margin-bottom:24px}
+#screenLogin .login-rw input{min-height:56px;background:rgba(255,255,255,.08);border:2px solid var(--border);border-radius:var(--radius-sm);padding:0 16px;font-size:18px;font-weight:700;color:var(--text);font-family:'Nunito',sans-serif;outline:none;width:100%;text-align:center}
+#screenLogin .login-rw input:focus{border-color:var(--gold)}
+#screenLogin .login-btns{padding:0 20px;display:flex;flex-direction:column;gap:12px}
+.btn-login{min-height:62px;border:none;border-radius:var(--radius);font-size:20px;font-weight:900;cursor:pointer;font-family:'Nunito',sans-serif;display:flex;align-items:center;justify-content:center;gap:10px;transition:opacity .2s}
+.btn-login:active{opacity:.8}
+.btn-satpam{background:linear-gradient(135deg,var(--gold2),var(--gold));color:#1a0d00;border:3px solid var(--gold)}
+.btn-komandan{background:linear-gradient(135deg,#7c3aed,var(--purple));color:#fff;border:3px solid var(--purple)}
+.btn-ketuarw{background:linear-gradient(135deg,#0284c7,var(--blue));color:#fff;border:3px solid var(--blue)}
+
+/* ==============================
+   HEADER
+   ============================== */
+.app-header{background:var(--navy);padding:10px 12px;display:flex;align-items:center;gap:6px;border-bottom:2px solid var(--border);min-height:54px;flex-shrink:0;flex-wrap:nowrap;overflow:hidden}
+.app-header .logo{font-size:22px;flex-shrink:0}
+.app-header .title{font-family:'Sora',sans-serif;font-weight:800;font-size:14px;color:var(--gold);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.app-header .badge{font-size:10px;font-weight:800;padding:3px 7px;border-radius:99px;border:1px solid;white-space:nowrap;flex-shrink:0}
+.badge-satpam{color:var(--gold);border-color:var(--gold)}
+.badge-komandan{color:var(--purple);border-color:var(--purple)}
+.badge-rw{color:var(--blue);border-color:var(--blue)}
+.hdr-btn{min-height:34px;min-width:0;border:1.5px solid var(--border);background:transparent;border-radius:10px;font-size:12px;font-weight:800;color:var(--muted);cursor:pointer;font-family:'Nunito',sans-serif;padding:0 10px;white-space:nowrap;flex-shrink:0}
+.hdr-btn:active{background:rgba(255,255,255,.08)}
+.hdr-btn.danger{border-color:var(--red);color:var(--red)}
+.hdr-btn.gold{border-color:var(--gold);color:var(--gold)}
+/* Pada layar sangat sempit, sembunyikan teks hdr-btn, tampilkan ikon saja */
+@media(max-width:360px){
+  .app-header .title{font-size:13px}
+  .hdr-btn{padding:0 7px;font-size:11px}
+}
+
+/* ==============================
+   BOTTOM NAV
+   ============================== */
+.bottom-nav{background:var(--navy);display:flex;border-top:2px solid var(--border);flex-shrink:0;padding-bottom:env(safe-area-inset-bottom,0)}
+.nav-tab{flex:1;min-height:58px;border:none;background:transparent;color:var(--muted);font-size:12px;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;transition:color .2s}
+.nav-tab.active{color:var(--gold)}
+.nav-tab .nav-icon{font-size:22px}
+
+/* ==============================
+   SATPAM PAGE SYSTEM
+   ============================== */
+.satpam-page-container{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.satpam-page{display:none;flex:1;min-height:0;flex-direction:column;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.satpam-page.satpam-page-show{display:flex}
+
+/* ==============================
+   SCROLL CONTENT
+   ============================== */
+.scroll-content{padding:16px}
+
+/* ==============================
+   CARDS & BUTTONS
+   ============================== */
+.card{background:var(--card);border-radius:var(--radius);border:1px solid var(--border);padding:16px;margin-bottom:14px}
+.card.gold-border{border-color:rgba(255,200,50,.4)}
+.card.green-border{border-color:rgba(0,230,118,.4)}
+.card.red-border{border-color:rgba(255,68,68,.4)}
+.card.purple-border{border-color:rgba(180,120,255,.4)}
+.card-title{font-size:15px;font-weight:900;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+
+.btn{min-height:62px;border-radius:var(--radius);font-size:18px;font-weight:900;cursor:pointer;font-family:'Nunito',sans-serif;border:none;width:100%;display:flex;align-items:center;justify-content:center;gap:10px;transition:opacity .2s;margin-bottom:10px}
+.btn:active{opacity:.8}
+.btn:last-child{margin-bottom:0}
+.btn-gold{background:linear-gradient(135deg,var(--gold2),var(--gold));color:#1a0d00;border:3px solid var(--gold)}
+.btn-red{background:rgba(255,68,68,.15);color:var(--red);border:2px solid var(--red)}
+.btn-green{background:rgba(0,230,118,.15);color:var(--green);border:2px solid var(--green)}
+.btn-muted{background:rgba(255,255,255,.06);color:var(--muted);border:1.5px solid var(--border)}
+.btn-purple{background:rgba(180,120,255,.15);color:var(--purple);border:2px solid var(--purple)}
+.btn-blue{background:rgba(79,195,247,.15);color:var(--blue);border:2px solid var(--blue)}
+.btn.sm{min-height:44px;font-size:15px}
+.btn.mega{min-height:80px;font-size:22px;border-width:3px}
+
+/* ==============================
+   STAT GRID
+   ============================== */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.stat-box{background:var(--card);border-radius:var(--radius-sm);border:1px solid var(--border);padding:14px;text-align:center}
+.stat-clickable{cursor:pointer;transition:background .15s,border-color .15s;-webkit-tap-highlight-color:transparent}
+.stat-clickable:active{background:rgba(255,200,50,.1);border-color:rgba(255,200,50,.5)}
+.stat-arrow{font-size:11px;color:var(--muted);margin-top:2px}
+.filter-chip{display:inline-flex;align-items:center;background:rgba(255,200,50,.12);border:1px solid var(--gold);color:var(--gold);border-radius:99px;padding:5px 12px;font-size:13px;font-weight:800;margin-bottom:12px}
+.stat-box .stat-val{font-size:28px;font-weight:900;color:var(--gold)}
+.stat-box .stat-lbl{font-size:12px;color:var(--muted);font-weight:700;margin-top:4px}
+.stat-grid-3{grid-template-columns:1fr 1fr 1fr}
+
+/* ==============================
+   CHECKLIST
+   ============================== */
+.check-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+.check-item:last-child{border-bottom:none}
+.check-item .check-dot{width:28px;height:28px;border-radius:50%;border:2.5px solid var(--muted);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;transition:all .3s}
+.check-item.done .check-dot{background:var(--green);border-color:var(--green);color:#000}
+.check-item .check-name{font-size:15px;font-weight:700;flex:1}
+.check-item .check-time{font-size:12px;color:var(--muted)}
+
+/* ==============================
+   PROGRESS BAR
+   ============================== */
+.progress-track{height:10px;background:rgba(255,255,255,.1);border-radius:99px;overflow:hidden;margin:10px 0}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--gold2),var(--gold));border-radius:99px;transition:width .5s}
+.progress-fill.green{background:linear-gradient(90deg,#00c853,var(--green))}
+
+/* ==============================
+   TIMER
+   ============================== */
+.timer-display{font-family:'Sora',sans-serif;font-size:36px;font-weight:900;color:var(--green);text-align:center;letter-spacing:2px}
+
+/* ==============================
+   MODAL / BOTTOM SHEET
+   ============================== */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:none;align-items:flex-end}
+.modal-overlay.open{display:flex}
+.modal-sheet{background:var(--navy2);border-radius:24px 24px 0 0;width:100%;max-height:88vh;overflow-y:auto;padding:8px 20px calc(28px + env(safe-area-inset-bottom,0px));-webkit-overflow-scrolling:touch}
+.modal-handle{width:40px;height:4px;background:rgba(255,255,255,.2);border-radius:99px;margin:12px auto 20px}
+.modal-title{font-family:'Sora',sans-serif;font-size:20px;font-weight:800;color:var(--text);margin-bottom:20px}
+.modal-close{position:absolute;top:12px;right:16px;background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer}
+
+/* ==============================
+   INPUT FIELD
+   ============================== */
+.field-label{font-size:13px;font-weight:800;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.field-inp{width:100%;min-height:56px;background:rgba(255,255,255,.07);border:2px solid var(--border);border-radius:var(--radius-sm);padding:0 16px;font-size:18px;color:var(--text);font-family:'Nunito',sans-serif;font-weight:700;outline:none;margin-bottom:14px}
+.field-inp:focus{border-color:var(--gold)}
+.field-inp::placeholder{color:var(--muted);font-weight:400}
+.field-inp.err{border-color:var(--red)}
+textarea.field-inp{min-height:100px;padding:14px 16px;resize:none}
+
+/* ==============================
+   KOMANDAN TAB SCROLL
+   ============================== */
+.tab-scroll{display:flex;gap:8px;overflow-x:auto;padding:10px 16px;border-bottom:2px solid var(--border);flex-shrink:0;-ms-overflow-style:none;scrollbar-width:none}
+.tab-scroll::-webkit-scrollbar{display:none}
+.tab-btn{min-height:40px;padding:0 16px;border-radius:99px;border:1.5px solid var(--border);background:transparent;font-size:13px;font-weight:800;color:var(--muted);cursor:pointer;white-space:nowrap;font-family:'Nunito',sans-serif;transition:all .2s;flex-shrink:0}
+.tab-btn.active{background:rgba(255,200,50,.15);border-color:var(--gold);color:var(--gold)}
+
+/* ==============================
+   QR CANVAS
+   ============================== */
+.qr-wrap{display:flex;justify-content:center;padding:10px;background:#fff;border-radius:12px;margin:10px auto;width:fit-content}
+
+/* ==============================
+   INCIDENT GRID
+   ============================== */
+.inc-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.inc-item{background:rgba(255,255,255,.05);border:2px solid var(--border);border-radius:var(--radius-sm);padding:16px 12px;text-align:center;cursor:pointer;transition:all .2s}
+.inc-item:active,.inc-item.selected{border-color:var(--gold);background:rgba(255,200,50,.12)}
+.inc-item .inc-icon{font-size:32px;margin-bottom:8px}
+.inc-item .inc-name{font-size:13px;font-weight:800;color:var(--text)}
+
+/* ==============================
+   SHIFT HISTORY
+   ============================== */
+.shift-card{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:10px}
+.shift-card .sh-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.shift-card .sh-name{font-weight:800;font-size:15px}
+.shift-card .sh-badge{font-size:11px;font-weight:800;padding:3px 8px;border-radius:99px;background:rgba(0,230,118,.15);color:var(--green);border:1px solid var(--green)}
+.shift-card .sh-meta{font-size:12px;color:var(--muted)}
+
+/* ==============================
+   TIP BOX
+   ============================== */
+.tip-box{background:rgba(255,200,50,.08);border:1.5px solid rgba(255,200,50,.25);border-radius:var(--radius-sm);padding:14px;margin-bottom:14px;font-size:14px;color:var(--gold);font-weight:600;display:flex;align-items:flex-start;gap:10px}
+.tip-box.hidden{display:none}
+
+/* ==============================
+   PIN INPUT
+   ============================== */
+.pin-row{display:flex;gap:10px;justify-content:center;margin:16px 0}
+.pin-box{width:48px;height:58px;background:rgba(255,255,255,.08);border:2px solid var(--gold);border-radius:12px;text-align:center;font-size:24px;font-weight:900;color:var(--gold);font-family:'Nunito',sans-serif;outline:none}
+.pin-box:focus{box-shadow:0 0 0 3px rgba(255,200,50,.3)}
+
+/* ==============================
+   KETUA RW SCREEN
+   ============================== */
+.rw-rt-card{background:var(--card);border-radius:var(--radius-sm);border:1px solid var(--border);padding:14px;margin-bottom:10px;display:flex;align-items:center;gap:12px}
+.rw-rt-card .rt-icon{font-size:28px}
+.rw-rt-card .rt-info{flex:1}
+.rw-rt-card .rt-name{font-size:15px;font-weight:800}
+.rw-rt-card .rt-meta{font-size:12px;color:var(--muted);margin-top:2px}
+.rw-rt-card .rt-status{font-size:11px;font-weight:800;padding:3px 10px;border-radius:99px}
+.rt-status.on{background:rgba(0,230,118,.15);color:var(--green);border:1px solid var(--green)}
+.rt-status.off{background:rgba(255,255,255,.05);color:var(--muted);border:1px solid var(--border)}
+
+/* ==============================
+   SEPARATOR
+   ============================== */
+.sep{height:1px;background:var(--border);margin:16px 0}
+
+/* ==============================
+   SWITCH
+   ============================== */
+.switch-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border)}
+.switch-lbl{font-size:15px;font-weight:700}
+.switch-desc{font-size:12px;color:var(--muted);margin-top:2px}
+.toggle{width:50px;height:28px;background:rgba(255,255,255,.1);border-radius:99px;position:relative;cursor:pointer;transition:background .3s;border:none;flex-shrink:0}
+.toggle.on{background:var(--green)}
+.toggle::after{content:'';position:absolute;width:22px;height:22px;background:#fff;border-radius:50%;top:3px;left:3px;transition:left .3s}
+.toggle.on::after{left:25px}
+
+/* ==============================
+   VIOLATION LOG
+   ============================== */
+.vio-item{background:rgba(255,68,68,.08);border:1px solid rgba(255,68,68,.25);border-radius:var(--radius-sm);padding:12px;margin-bottom:8px}
+.vio-head{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.vio-type{font-size:12px;font-weight:800;color:var(--red)}
+.vio-meta{font-size:12px;color:var(--muted)}
+
+/* ==============================
+   CAMERA PREVIEW
+   ============================== */
+#qr-reader{border-radius:var(--radius-sm);overflow:hidden;width:100%!important}
+#qr-reader video{width:100%!important;border-radius:var(--radius-sm)}
+
+/* ==============================
+   SATPAM NAME SELECT
+   ============================== */
+.satpam-option{padding:16px;border-bottom:1px solid var(--border);font-size:17px;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:10px;transition:background .2s}
+.satpam-option:last-child{border-bottom:none}
+.satpam-option:active{background:rgba(255,200,50,.1)}
+
+/* ==============================
+   SEVERITY GRID
+   ============================== */
+.sev-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px}
+.sev-item{padding:12px 8px;border:2px solid var(--border);border-radius:var(--radius-sm);text-align:center;cursor:pointer;font-size:13px;font-weight:800;transition:all .2s}
+.sev-item.ringan.selected{border-color:var(--green);background:rgba(0,230,118,.12);color:var(--green)}
+.sev-item.sedang.selected{border-color:var(--orange);background:rgba(255,140,0,.12);color:var(--orange)}
+.sev-item.berat.selected{border-color:var(--red);background:rgba(255,68,68,.12);color:var(--red)}
+
+/* ==============================
+   MISC
+   ============================== */
+.flex-row{display:flex;align-items:center;gap:10px}
+.spacer{flex:1}
+.text-center{text-align:center}
+.text-gold{color:var(--gold)}
+.text-green{color:var(--green)}
+.text-red{color:var(--red)}
+.text-muted{color:var(--muted)}
+.fw900{font-weight:900}
+.fs-lg{font-size:18px}
+.mt-8{margin-top:8px}
+.mb-0{margin-bottom:0!important}
+.hidden{display:none!important}
+
+/* ==============================
+   ICON BUTTON (kecil, konsisten)
+   ============================== */
+.icon-btn{width:38px;height:38px;border-radius:10px;border:1.5px solid;background:transparent;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s}
+.icon-btn:active{opacity:.7;transform:scale(.92)}
+.icon-btn.danger{border-color:var(--red);color:var(--red)}
+.icon-btn.danger:hover{background:rgba(255,68,68,.12)}
+.icon-btn.blue{border-color:var(--blue);color:var(--blue)}
+.icon-btn.blue:hover{background:rgba(79,195,247,.12)}
+.icon-btn.gold{border-color:var(--gold);color:var(--gold)}
+.icon-btn.gold:hover{background:rgba(255,200,50,.12)}
+
+/* ==============================
+   PHOTO PREVIEW
+   ============================== */
+.photo-preview{width:100%;max-height:200px;object-fit:cover;border-radius:var(--radius-sm);margin-top:10px;display:none}
+.photo-preview.show{display:block}
+
+/* ==============================
+   SYNC INDICATOR
+   ============================== */
+.sync-indicator{font-size:14px;opacity:.7;cursor:default;transition:opacity .3s;flex-shrink:0}
+.sync-indicator.active{opacity:1;animation:syncPulse 2s ease infinite}
+@keyframes syncPulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ==============================
+   Utility Classes
+   ============================== */
+.flex-row      { display: flex; align-items: center; }
+.flex-between  { display: flex; align-items: center; justify-content: space-between; }
+.ml-auto       { margin-left: auto; }
+.text-center   { text-align: center; }
+.empty-state   { padding: 40px; text-align: center; }
+.mt-8          { margin-top: 8px; }
+.mt-12         { margin-top: 12px; }
+.mt-14         { margin-top: 14px; }
+.mb-0          { margin-bottom: 0; }
+.gap-8         { gap: 8px; }
+.gap-10        { gap: 10px; }
+.w-full        { width: 100%; }
+
+</style>
+</head>
+<body>
+
+<!-- ==============================
+     TOAST
+     ============================== -->
+<div id="toast"></div>
+<canvas id="confetti-canvas" style="display:none"></canvas>
+
+<!-- ==============================
+     ONBOARDING SCREENS (z:500)
+     ============================== -->
+
+<!-- S0: Pilih Role -->
+<div class="ob-screen ob-active" id="ob0">
+  <div class="ob-header">
+    <button class="hdr-btn" onclick="obBackToLogin()" title="Kembali ke halaman login">← Kembali</button>
+    <div style="display:flex;align-items:center;gap:8px;margin-left:8px">
+      <span style="font-size:22px">🛡️</span>
+      <div>
+        <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:14px;color:var(--gold)">Patroli VP</div>
+        <div style="font-size:11px;color:var(--muted)">Villa Pertiwi, Depok</div>
+      </div>
+    </div>
+  </div>
+  <div class="ob-scroll">
+    <div class="ob-step-bar">
+      <div class="step-label">Langkah 1 dari 3 · Pilih Peran</div>
+      <div class="step-track"><div class="step-fill" style="width:33%"></div></div>
+    </div>
+    <div class="title-hero" style="margin-bottom:8px">Selamat Datang! 👋</div>
+    <div class="body-text" style="margin-bottom:28px">Anda berperan sebagai apa dalam sistem patroli ini?</div>
+    <div class="ob-choice" id="ch-satpam" onclick="chooseRole('satpam')">
+      <div class="ch-icon">👮</div>
+      <div class="ch-title">Satpam / Petugas</div>
+      <div class="ch-desc">Saya bertugas keliling melakukan patroli malam</div>
+    </div>
+    <div class="ob-choice" id="ch-komandan" onclick="chooseRole('komandan')">
+      <div class="ch-icon">⭐</div>
+      <div class="ch-title">Komandan / Ketua RT</div>
+      <div class="ch-desc">Saya mengelola jadwal dan memantau laporan patroli</div>
+    </div>
+  </div>
+  <div class="ob-footer">
+    <div class="card-info">💡 Komandan bisa masuk dulu untuk setup, baru bagikan kode ke satpam</div>
+  </div>
+</div>
+
+<!-- S1a: Satpam — punya kode RT? -->
+<div class="ob-screen" id="ob1a">
+  <div class="ob-header">
+    <button class="hdr-btn" onclick="obGoTo('ob0')">← Kembali</button>
+    <div style="flex:1;text-align:center;font-weight:800;color:var(--gold)">Satpam</div>
+  </div>
+  <div class="ob-scroll">
+    <div style="font-size:60px;text-align:center;margin-bottom:16px">🔑</div>
+    <div class="title-section text-center" style="margin-bottom:12px">Punya Kode RT?</div>
+    <div class="body-text text-center" style="margin-bottom:32px">Komandan/Ketua RT akan memberi Anda <strong style="color:var(--gold)">nomor RW, RT, dan PIN Satpam (6 digit)</strong>.</div>
+    <button class="ob-btn-primary" onclick="obGoTo('ob-satpam-login')">✅ Punya Kode — Masuk Sekarang</button>
+    <button class="ob-btn-ghost" onclick="obGoTo('ob-no-code')">❌ Belum Punya Kode</button>
+  </div>
+</div>
+
+<!-- S1a lanjutan: belum punya kode -->
+<div class="ob-screen" id="ob-no-code">
+  <div class="ob-header">
+    <button class="hdr-btn" onclick="obGoTo('ob1a')">← Kembali</button>
+  </div>
+  <div class="ob-scroll text-center">
+    <div style="font-size:60px;margin-bottom:16px">📞</div>
+    <div class="title-section" style="margin-bottom:12px">Minta ke Komandan</div>
+    <div class="body-text" style="margin-bottom:24px">Hubungi Komandan / Ketua RT Anda dan minta:<br><br>
+      🔹 <strong style="color:var(--text)">Nomor RW</strong> (mis: 03)<br>
+      🔹 <strong style="color:var(--text)">Nomor RT</strong> (mis: 05)<br>
+      🔹 <strong style="color:var(--text)">PIN Satpam</strong> (6 digit)<br><br>
+      Setelah dapat kode, kembali ke sini dan tap tombol di bawah.
+    </div>
+    <button class="ob-btn-primary" onclick="obGoTo('ob-satpam-login')">Sudah Dapat — Masuk</button>
+  </div>
+</div>
+
+<!-- S-satpam-login: masuk dengan PIN satpam -->
+<div class="ob-screen" id="ob-satpam-login">
+  <div class="ob-header">
+    <button class="hdr-btn" onclick="obGoTo('ob1a')">← Kembali</button>
+    <div style="flex:1;text-align:center;font-weight:800;color:var(--gold)">Login Satpam</div>
+  </div>
+  <div class="ob-scroll">
+    <div class="title-section" style="margin-bottom:20px">Masukkan Data RT</div>
+    <div class="field-label">Nomor RW</div>
+    <input class="ob-inp" id="sl-rw" type="number" placeholder="Contoh: 03" style="margin-bottom:14px" oninput="obLoadSatpamList()"/>
+    <div class="field-label">Nomor RT</div>
+    <input class="ob-inp" id="sl-rt" type="number" placeholder="Contoh: 05" style="margin-bottom:14px" oninput="obLoadSatpamList()"/>
+    <div class="field-label">Pilih Nama Anda</div>
+    <div id="sl-satpam-list" style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:14px;background:rgba(255,255,255,.05)">
+      <div style="padding:14px;color:var(--muted);font-size:14px;text-align:center">Isi nomor RW dan RT untuk melihat daftar</div>
+    </div>
+    <div id="sl-no-satpam" style="display:none;margin-bottom:14px">
+      <div class="card-info" style="border-color:rgba(255,68,68,.3);color:var(--red);background:rgba(255,68,68,.08)">
+        ⚠️ Belum ada satpam terdaftar di RT ini. Hubungi Komandan.
+      </div>
+    </div>
+    <div class="field-label">PIN Satpam (6 digit dari Komandan)</div>
+    <div class="ob-pin-row" id="sl-pin-row"></div>
+  </div>
+  <div class="ob-footer">
+    <button class="ob-btn-primary" onclick="satpamLoginFromOb()">🔓 Masuk</button>
+  </div>
+</div>
+
+<!-- S1b: Komandan — RT baru atau sudah ada? -->
+<div class="ob-screen" id="ob1b">
+  <div class="ob-header">
+    <button class="hdr-btn" onclick="obGoTo('ob0')">← Kembali</button>
+    <div style="flex:1;text-align:center;font-weight:800;color:var(--purple)">Komandan</div>
+  </div>
+  <div class="ob-scroll">
+    <div class="ob-step-bar">
+      <div class="step-label">Langkah 1 dari 3</div>
+      <div class="step-track"><div class="step-fill" style="width:33%;background:linear-gradient(90deg,#7c3aed,var(--purple))"></div></div>
+    </div>
+    <div class="title-section" style="margin-bottom:20px">RT Anda Sudah Terdaftar?</div>
+    <div class="ob-choice" onclick="obGoTo('ob2')">
+      <div class="ch-icon">✨</div>
+      <div class="ch-title">RT Baru — Setup Pertama</div>
+      <div class="ch-desc">Saya akan mendaftarkan RT baru dan membuat PIN</div>
+    </div>
+    <div class="ob-choice" onclick="obGoTo('ob1c')">
+      <div class="ch-icon">🔑</div>
+      <div class="ch-title">RT Sudah Ada — Masuk dengan PIN</div>
+      <div class="ch-desc">RT sudah pernah didaftarkan di perangkat lain</div>
+    </div>
+  </div>
+</div>
+
+<!-- S1c: Komandan login dengan PIN admin -->
+<div class="ob-screen" id="ob1c">
+  <div class="ob-header">
+    <button class="hdr-btn" onclick="obGoTo('ob1b')">← Kembali</button>
+    <div style="flex:1;text-align:center;font-weight:800;color:var(--purple)">Login Komandan</div>
+  </div>
+  <div class="ob-scroll">
+    <div class="title-section" style="margin-bottom:20px">Masuk dengan PIN Admin</div>
+    <div class="field-label">Nomor RW</div>
+    <input class="ob-inp" id="kl-rw" type="number" placeholder="Contoh: 03" style="margin-bottom:14px"/>
+    <div class="field-label">Nomor RT</div>
+    <input class="ob-inp" id="kl-rt" type="number" placeholder="Contoh: 05" style="margin-bottom:14px"/>
+    <div class="field-label">PIN Admin (4 digit)</div>
+    <div class="ob-pin-row" id="kl-pin-row"></div>
+  </div>
+  <div class="ob-footer">
+    <button class="ob-btn-primary" onclick="komandanLoginFromOb()">🔓 Masuk sebagai Komandan</button>
+  </div>
+</div>
+
+<!-- S2: Isi nomor RW dan RT -->
+<div class="ob-screen" id="ob2">
+  <div class="ob-header">
+    <button class="hdr-btn" onclick="obGoTo('ob1b')">← Kembali</button>
+    <div style="flex:1;text-align:center;font-weight:800;color:var(--purple)">Setup RT Baru</div>
+  </div>
+  <div class="ob-scroll">
+    <div class="ob-step-bar">
+      <div class="step-label">Langkah 1 dari 3 · Nomor RT/RW</div>
+      <div class="step-track"><div class="step-fill" style="width:33%;background:linear-gradient(90deg,#7c3aed,var(--purple))"></div></div>
+    </div>
+    <div class="title-section" style="margin-bottom:8px">Nomor RW dan RT</div>
+    <div class="body-text" style="margin-bottom:20px">Masukkan nomor RW dan RT yang akan dijaga.</div>
+    <div class="field-label">Nomor RW</div>
+    <input class="ob-inp" id="ob2-rw" type="number" placeholder="Contoh: 3" style="margin-bottom:14px"/>
+    <div class="field-label">Nomor RT</div>
+    <input class="ob-inp" id="ob2-rt" type="number" placeholder="Contoh: 5" style="margin-bottom:14px"/>
+    <div class="card-info">💡 Pastikan nomor RW dan RT sudah benar sebelum lanjut</div>
+  </div>
+  <div class="ob-footer">
+    <button class="ob-btn-primary" onclick="ob2Next()">Lanjut →</button>
+  </div>
+</div>
+
+<!-- S3: Isi nama RT, Komandan, WA -->
+<div class="ob-screen" id="ob3">
+  <div class="ob-header">
+    <button class="hdr-btn" onclick="obGoTo('ob2')">← Kembali</button>
+    <div style="flex:1;text-align:center;font-weight:800;color:var(--purple)">Info RT</div>
+  </div>
+  <div class="ob-scroll">
+    <div class="ob-step-bar">
+      <div class="step-label">Langkah 2 dari 3 · Info RT</div>
+      <div class="step-track"><div class="step-fill" style="width:66%;background:linear-gradient(90deg,#7c3aed,var(--purple))"></div></div>
+    </div>
+    <div class="title-section" style="margin-bottom:8px">Data RT</div>
+    <div class="body-text" style="margin-bottom:20px">Isi informasi RT Anda.</div>
+    <div class="field-label">Nama RT / Blok</div>
+    <input class="ob-inp" id="ob3-rtname" type="text" placeholder="Contoh: RT 05 Blok A" style="margin-bottom:14px"/>
+    <div class="field-label">Nama Komandan / Ketua RT</div>
+    <input class="ob-inp" id="ob3-komname" type="text" placeholder="Nama lengkap" style="margin-bottom:14px"/>
+    <div class="field-label">Nomor WhatsApp Komandan</div>
+    <input class="ob-inp" id="ob3-wa" type="tel" placeholder="628123456789" style="margin-bottom:14px"/>
+    <div class="field-label">Nomor WA Grup RT (opsional)</div>
+    <input class="ob-inp" id="ob3-grp" type="tel" placeholder="628123456789" style="margin-bottom:14px"/>
+  </div>
+  <div class="ob-footer">
+    <button class="ob-btn-primary" onclick="ob3Next()">Lanjut →</button>
+  </div>
+</div>
+
+<!-- S4: Set PIN Admin dan PIN Satpam -->
+<div class="ob-screen" id="ob4">
+  <div class="ob-header">
+    <button class="hdr-btn" onclick="obGoTo('ob3')">← Kembali</button>
+    <div style="flex:1;text-align:center;font-weight:800;color:var(--purple)">Buat PIN</div>
+  </div>
+  <div class="ob-scroll">
+    <div class="ob-step-bar">
+      <div class="step-label">Langkah 3 dari 3 · PIN Keamanan</div>
+      <div class="step-track"><div class="step-fill" style="width:100%;background:linear-gradient(90deg,#7c3aed,var(--purple))"></div></div>
+    </div>
+    <div class="title-section" style="margin-bottom:8px">Buat PIN</div>
+    <div class="body-text" style="margin-bottom:20px">PIN Admin untuk Komandan, PIN Satpam untuk petugas.</div>
+    <div class="field-label">PIN Admin (4 digit)</div>
+    <div class="ob-pin-row" id="ob4-adminpin"></div>
+    <div class="body-text text-center" style="margin-bottom:20px">Default: <strong style="color:var(--gold)">1606</strong></div>
+    <div class="sep"></div>
+    <div class="field-label" style="margin-top:16px">PIN Satpam (6 digit) — bagikan ke satpam</div>
+    <div class="ob-pin-row" id="ob4-satpampin"></div>
+  </div>
+  <div class="ob-footer">
+    <button class="ob-btn-primary" onclick="ob4Next()">Lihat Ringkasan →</button>
+  </div>
+</div>
+
+<!-- S5: Review data -->
+<div class="ob-screen" id="ob5">
+  <div class="ob-header">
+    <button class="hdr-btn" onclick="obGoTo('ob4')">← Kembali</button>
+    <div style="flex:1;text-align:center;font-weight:800;color:var(--purple)">Konfirmasi</div>
+  </div>
+  <div class="ob-scroll">
+    <div class="title-section" style="margin-bottom:20px">📋 Periksa Data</div>
+    <div class="card" id="ob5-review"></div>
+    <div class="card-info mt-16">⚠️ Setelah disimpan, PIN hanya bisa diubah di menu Konfigurasi Komandan.</div>
+  </div>
+  <div class="ob-footer">
+    <button class="ob-btn-primary" onclick="ob5Save()">💾 Simpan & Mulai</button>
+    <button class="ob-btn-ghost" onclick="obGoTo('ob4')">← Edit Kembali</button>
+  </div>
+</div>
+
+<!-- S6: Sukses konfetti -->
+<div class="ob-screen" id="ob6">
+  <div class="ob-scroll text-center" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100%">
+    <div style="font-size:80px;margin-bottom:20px">🎉</div>
+    <div class="title-hero" style="margin-bottom:12px">Berhasil!</div>
+    <div class="body-text" style="margin-bottom:32px">RT Anda sudah terdaftar. Mulai kelola patroli sekarang.</div>
+    <div class="card" style="width:100%;background:rgba(180,120,255,.12);border-color:rgba(180,120,255,.4);cursor:pointer" onclick="goToApp()">
+      <div style="font-size:36px;margin-bottom:8px">⭐</div>
+      <div style="font-size:20px;font-weight:900;color:var(--purple);margin-bottom:4px">Masuk sebagai Komandan</div>
+      <div style="font-size:14px;color:var(--muted)">Kelola satpam, titik patroli, dan laporan</div>
+    </div>
+  </div>
+</div>
+
+<!-- ==============================
+     SCREEN LOGIN
+     ============================== -->
+<div class="screen" id="screenLogin">
+  <div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch">
+    <div class="login-logo">
+      <div class="logo-icon">🛡️</div>
+      <h1>PATROLI VP</h1>
+      <p>Villa Pertiwi · Depok</p>
+    </div>
+    <div style="padding:0 20px;margin-bottom:16px">
+      <div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Nomor RW dan RT</div>
+      <div class="login-rw">
+        <input id="login-rw" type="number" placeholder="RW (cth: 3)"/>
+        <input id="login-rt" type="number" placeholder="RT (cth: 5)"/>
+      </div>
+    </div>
+    <div class="login-btns" style="padding-bottom:32px">
+      <button class="btn-login btn-satpam" onclick="openLoginModal('satpam')">👮 SATPAM / PETUGAS</button>
+      <button class="btn-login btn-komandan" onclick="openLoginModal('komandan')">⭐ KOMANDAN / KETUA RT</button>
+      <button class="btn-login btn-ketuarw" onclick="openLoginModal('ketuarw')">🏠 KETUA RW</button>
+      <button class="btn-login" style="background:transparent;border:2px solid var(--border);color:var(--muted);font-size:16px;min-height:50px" onclick="showOnboarding()">+ Daftarkan RT Baru</button>
+      <button class="btn-login" style="background:rgba(0,230,118,.08);border:2px solid rgba(0,230,118,.4);color:var(--green);font-size:15px;min-height:50px" onclick="el('restore-from-login-file').click()">⬆️ Restore dari Backup JSON</button>
+      <input type="file" id="restore-from-login-file" accept=".json" style="display:none" onchange="restoreFromLoginScreen(event)"/>
+      <div id="restore-login-status" style="display:none;margin-top:8px;font-size:13px;padding:12px 14px;border-radius:14px;font-weight:700;text-align:center"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ==============================
+     SCREEN SATPAM
+     ============================== -->
+<div class="screen" id="screenSatpam">
+  <!-- Header -->
+  <div class="app-header">
+    <span class="logo">🛡️</span>
+    <div class="title">VILLA PERTIWI</div>
+    <span class="badge badge-satpam" id="hdr-badge-satpam">RW— / RT—</span>
+    <span id="sync-indicator" class="sync-indicator" title="Status sync">📵</span>
+    <button class="hdr-btn" id="btn-senter" onclick="toggleSenter()" style="min-width:36px;padding:0 8px" title="Senter">🔦</button>
+    <button class="hdr-btn gold" onclick="openKomandanFromSatpam()" style="min-width:36px;padding:0 8px" title="Panel Komandan">⭐</button>
+    <button class="hdr-btn danger" onclick="doLogout()" style="padding:0 10px">Keluar</button>
+  </div>
+  <!-- Pages Container (di atas nav) -->
+  <div class="satpam-page-container">
+    <!-- Tab Patroli -->
+    <div class="satpam-page satpam-page-show" id="page-patroli">
+      <div class="scroll-content">
+        <!-- Tips -->
+        <div class="tip-box" id="tip-no-loc">📍 Belum ada titik lokasi patroli. Minta Komandan untuk menambahkan.</div>
+        <div class="tip-box" id="tip-no-satpam">👤 Data satpam belum ada. Minta Komandan untuk menambahkan nama Anda.</div>
+        <!-- No shift state -->
+        <div id="no-shift-state">
+          <button class="btn btn-gold mega" onclick="openShiftModal()">▶ MULAI SHIFT</button>
+          <button class="btn btn-red" onclick="openIncidentModal()">🚨 LAPORKAN KEJADIAN</button>
+          <div class="stat-grid">
+            <div class="stat-box"><div class="stat-val" id="stat-total-shift">0</div><div class="stat-lbl">Total Shift</div></div>
+            <div class="stat-box"><div class="stat-val" id="stat-total-loc">0</div><div class="stat-lbl">Titik Patroli</div></div>
+          </div>
+          <button class="btn btn-muted sm" onclick="openJoinShiftModal()" style="display:none">🔗 Gabung Shift (Kode Join)</button>
+        </div>
+        <!-- Active shift state -->
+        <div id="active-shift-state" class="hidden">
+          <div class="card green-border" style="margin-bottom:14px">
+            <div style="font-size:11px;text-align:center;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">⏱ Durasi Shift Berjalan</div>
+            <div class="timer-display" id="shift-timer">00:00:00</div>
+            <div style="text-align:center;margin-top:8px">
+              <div style="font-size:15px;font-weight:800" id="shift-satpam-name">–</div>
+              <div style="font-size:12px;color:var(--muted)" id="shift-start-time">–</div>
+            </div>
+            <div style="font-size:11px;text-align:center;color:var(--muted);margin-top:6px">Timer otomatis lanjut jika aplikasi ditutup</div>
+          </div>
+          <button class="btn btn-red" onclick="openIncidentModal()">🚨 LAPORKAN KEJADIAN</button>
+          <!-- QR Scanner -->
+          <div class="card gold-border" style="margin-bottom:14px">
+            <div class="card-title">📷 Scanner QR Patroli</div>
+            <div id="qr-reader"></div>
+            <div id="qr-status" style="text-align:center;font-size:14px;color:var(--muted);margin-top:8px">Arahkan kamera ke QR Code di titik patroli</div>
+          </div>
+          <!-- Checklist -->
+          <div class="card" style="margin-bottom:14px">
+            <div class="card-title">✅ Checklist Patroli</div>
+            <div class="progress-track"><div class="progress-fill" id="check-progress" style="width:0%"></div></div>
+            <div style="font-size:13px;color:var(--muted);margin-bottom:12px" id="check-progress-text">0 / 0 titik</div>
+            <div id="checklist-items"></div>
+          </div>
+          <button id="btn-selesai-shift" class="btn btn-green mega" onclick="endShift()">✅ SELESAI & KIRIM WA</button>
+          <div style="height:16px"></div>
+        </div>
+      </div>
+    </div>
+    <!-- Tab Laporan -->
+    <div class="satpam-page" id="page-laporan">
+      <div class="scroll-content">
+        <div class="stat-grid" style="margin-bottom:14px">
+          <div class="stat-box"><div class="stat-val" id="rep-total-shift">0</div><div class="stat-lbl">Total Shift</div></div>
+          <div class="stat-box"><div class="stat-val" id="rep-total-inc">0</div><div class="stat-lbl">Kejadian</div></div>
+        </div>
+        <!-- FITUR BARU: Sync Status -->
+        <div id="sync-status-wrap"></div>
+        <!-- FITUR BARU: Storage Indicator -->
+        <div id="storage-indicator-wrap"></div>
+        <div class="card">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+            <div class="card-title" style="margin:0">📋 Riwayat Shift</div>
+          </div>
+          <div id="shift-history-list">
+            <div class="body-text text-center" style="padding:20px">Belum ada riwayat shift</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-bottom:14px">
+          <button class="btn btn-muted sm mb-0" onclick="exportCSV()">📊 Export CSV</button>
+          <button class="btn btn-muted sm mb-0" onclick="exportJSON()">📁 Export JSON</button>
+        </div>
+        <button class="btn btn-green" onclick="sendWaReport()">📤 Kirim Laporan WA</button>
+      </div>
+    </div>
+  </div>
+  <!-- Nav (di bawah page container, tidak overlap) -->
+  <div class="bottom-nav">
+    <button class="nav-tab active" id="tab-patroli-btn" onclick="switchSatpamTab('patroli')">
+      <span class="nav-icon">🛡️</span><span>Patroli</span>
+    </button>
+    <button class="nav-tab" id="tab-laporan-btn" onclick="switchSatpamTab('laporan')">
+      <span class="nav-icon">📋</span><span>Laporan</span>
+    </button>
+  </div>
+</div>
+
+<!-- ==============================
+     SCREEN KOMANDAN
+     ============================== -->
+<div class="screen" id="screenKomandan">
+  <div class="app-header">
+    <span class="logo" style="font-size:20px">📊</span>
+    <div class="title">KOMANDAN</div>
+    <span class="badge badge-komandan" id="hdr-badge-komandan">RW— / RT—</span>
+    <span id="sync-indicator-komandan" class="sync-indicator" title="Status sync">📵</span>
+    <button class="hdr-btn" onclick="goBackFromKomandan()" style="padding:0 10px">← Kembali</button>
+    <button class="hdr-btn danger" onclick="doLogout()" style="padding:0 10px">Keluar</button>
+  </div>
+  <div class="tab-scroll" id="kom-tab-scroll">
+    <button class="tab-btn active" onclick="switchKomTab('master')">👥 Data Master</button>
+    <button class="tab-btn" onclick="switchKomTab('statistik')">📊 Statistik</button>
+    <button class="tab-btn" onclick="switchKomTab('kejadian')">⚠️ Kejadian</button>
+    <button class="tab-btn" onclick="switchKomTab('jadwal')">📅 Jadwal</button>
+    <button class="tab-btn" onclick="switchKomTab('perbandingan')">⚖️ Perbandingan</button>
+    <button class="tab-btn" onclick="switchKomTab('konfigurasi')">⚙️ Konfigurasi</button>
+    <button class="tab-btn" onclick="switchKomTab('integritas')">🔍 Integritas</button>
+  </div>
+  <div style="flex:1;overflow-y:auto;padding:16px;-webkit-overflow-scrolling:touch" id="kom-content">
+    <!-- Dynamically rendered -->
+  </div>
+</div>
+
+<!-- ==============================
+     SCREEN KETUA RW
+     ============================== -->
+<div class="screen" id="screenKetuaRW">
+  <div class="app-header">
+    <span class="logo">🏠</span>
+    <div class="title">KETUA RW</div>
+    <span class="badge badge-rw" id="hdr-badge-rw">RW—</span>
+    <span id="sync-indicator-rw" class="sync-indicator" title="Status sync">📵</span>
+    <button class="hdr-btn" onclick="doLogout()">Keluar</button>
+  </div>
+  <div style="flex:1;overflow-y:auto;padding:16px;-webkit-overflow-scrolling:touch">
+    <div id="rw-dashboard-content">
+      <div class="body-text text-center" style="padding:40px">Memuat data...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ==============================
+     MODALS
+     ============================== -->
+
+<!-- Shift Modal -->
+<div class="modal-overlay" id="shiftModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">▶ Mulai Shift Patroli</div>
+    <div class="field-label">Pilih Nama Satpam</div>
+    <div id="satpam-select-list" style="margin-bottom:20px;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden"></div>
+    <div id="custom-name-wrap" style="display:none">
+      <div class="field-label">Atau Ketik Nama</div>
+      <input class="field-inp" id="shift-custom-name" type="text" placeholder="Nama satpam"/>
+    </div>
+    <!-- FITUR BARU: Satpam Kedua -->
+    <div class="field-label" style="margin-top:8px">Satpam Kedua <span style="color:var(--muted);font-weight:400;font-size:12px">(opsional — untuk shift bersama)</span></div>
+    <div id="satpam2-select-list" style="margin-bottom:20px;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden"></div>
+    <div id="custom-name2-wrap" style="display:none">
+      <div class="field-label">Atau Ketik Nama Satpam Kedua</div>
+      <input class="field-inp" id="shift-custom-name2" type="text" placeholder="Nama satpam kedua"/>
+    </div>
+    <button class="btn btn-gold" onclick="startShift()">▶ MULAI SEKARANG</button>
+    <button class="btn btn-muted sm" onclick="closeModal('shiftModal')">Batal</button>
+  </div>
+</div>
+
+<!-- Join Shift Modal -->
+<div class="modal-overlay" id="joinShiftModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🔗 Gabung Shift</div>
+    <div class="body-text" style="margin-bottom:16px">Masukkan kode 6 digit dari satpam yang memulai shift.</div>
+    <div class="field-label">Kode Join (6 digit)</div>
+    <input class="field-inp" id="join-code" type="text" maxlength="6" placeholder="000000"/>
+    <button class="btn btn-gold" onclick="joinShift()">🔗 Gabung</button>
+    <button class="btn btn-muted sm" onclick="closeModal('joinShiftModal')">Batal</button>
+  </div>
+</div>
+
+<!-- Incident Modal -->
+<div class="modal-overlay" id="incidentModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🚨 Laporan Kejadian</div>
+    <div class="field-label">Jenis Kejadian</div>
+    <div class="inc-grid" id="inc-type-grid">
+      <div class="inc-item" onclick="selectIncType(this,'Pencurian')"><div class="inc-icon">🔓</div><div class="inc-name">Pencurian</div></div>
+      <div class="inc-item" onclick="selectIncType(this,'Keributan')"><div class="inc-icon">📢</div><div class="inc-name">Keributan</div></div>
+      <div class="inc-item" onclick="selectIncType(this,'Kebakaran')"><div class="inc-icon">🔥</div><div class="inc-name">Kebakaran</div></div>
+      <div class="inc-item" onclick="selectIncType(this,'Orang Asing')"><div class="inc-icon">👤</div><div class="inc-name">Orang Asing</div></div>
+      <div class="inc-item" onclick="selectIncType(this,'Kecelakaan')"><div class="inc-icon">🚑</div><div class="inc-name">Kecelakaan</div></div>
+      <div class="inc-item" onclick="selectIncType(this,'Lainnya')"><div class="inc-icon">❓</div><div class="inc-name">Lainnya</div></div>
+    </div>
+    <div class="field-label">Tingkat Keparahan</div>
+    <div class="sev-grid">
+      <div class="sev-item ringan" onclick="selectSeverity(this,'Ringan')">🟢 Ringan</div>
+      <div class="sev-item sedang" onclick="selectSeverity(this,'Sedang')">🟡 Sedang</div>
+      <div class="sev-item berat" onclick="selectSeverity(this,'Berat')">🔴 Berat</div>
+    </div>
+    <div class="field-label">📍 Lokasi Kejadian</div>
+    <div id="inc-loc-list" style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:8px"></div>
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <button class="btn btn-muted sm mb-0" style="flex:1" onclick="incLocManual()">✏️ Ketik Manual</button>
+      <button class="btn btn-muted sm mb-0" style="flex:1" onclick="incLocGPS()">📡 Pakai GPS</button>
+    </div>
+    <div id="inc-loc-manual-wrap" style="display:none;margin-bottom:8px">
+      <input class="field-inp mb-0" id="inc-loc-text" type="text" placeholder="Nama lokasi / alamat kejadian"/>
+    </div>
+    <div id="inc-loc-display" style="display:none;font-size:13px;color:var(--blue);margin-bottom:12px;padding:8px 12px;background:rgba(79,195,247,.08);border-radius:10px;border:1px solid rgba(79,195,247,.25)"></div>
+    <div class="field-label">Deskripsi (opsional)</div>
+    <textarea class="field-inp" id="inc-desc" placeholder="Ceritakan kejadiannya..."></textarea>
+    <button class="btn btn-red" onclick="submitIncident()">📤 Kirim Laporan</button>
+    <button class="btn btn-muted sm" onclick="closeModal('incidentModal')">Batal</button>
+  </div>
+</div>
+
+<!-- Komandan Login Modal (dari screen satpam) -->
+<div class="modal-overlay" id="komandanLoginModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">⭐ Masuk sebagai Komandan</div>
+    <div class="body-text" style="margin-bottom:16px">Masukkan PIN Admin (4 digit).</div>
+    <div class="pin-row" id="klm-pin-row"></div>
+    <button class="btn btn-purple" onclick="verifyKomandanFromSatpam()">🔓 Masuk</button>
+    <button class="btn btn-muted sm" onclick="closeModal('komandanLoginModal')">Batal</button>
+  </div>
+</div>
+
+<!-- Ketua RW Login Modal -->
+<div class="modal-overlay" id="rwLoginModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🏠 Login Ketua RW</div>
+    <div class="field-label">Nomor RW</div>
+    <input class="field-inp" id="rw-login-rw" type="number" placeholder="Nomor RW"/>
+    <div class="field-label">PIN Ketua RW (4 digit)</div>
+    <div class="pin-row" id="rw-login-pin"></div>
+    <button class="btn btn-blue" onclick="loginKetuaRW()">🔓 Masuk</button>
+    <button class="btn btn-muted sm" onclick="closeModal('rwLoginModal')">Batal</button>
+  </div>
+</div>
+
+<!-- Satpam Login Modal -->
+<div class="modal-overlay" id="satpamLoginModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">👮 Login Satpam</div>
+    <div class="field-label">Pilih Nama Anda</div>
+    <div id="slm-satpam-list" style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:14px">
+      <div style="padding:16px;color:var(--muted);font-size:14px;text-align:center">Isi RW & RT dulu, lalu pilih nama</div>
+    </div>
+    <div id="slm-no-satpam" style="display:none;margin-bottom:14px">
+      <div class="card-info" style="border-color:rgba(255,68,68,.3);color:var(--red);background:rgba(255,68,68,.08)">
+        ⚠️ Belum ada satpam terdaftar di RT ini. Hubungi Komandan untuk mendaftarkan nama Anda.
+      </div>
+    </div>
+    <div class="field-label">PIN Satpam (6 digit)</div>
+    <div class="pin-row" id="slm-pin-row"></div>
+    <button class="btn btn-gold" onclick="loginSatpamFromModal()">🔓 Masuk</button>
+    <button class="btn btn-muted sm" onclick="closeModal('satpamLoginModal')">Batal</button>
+  </div>
+</div>
+
+<!-- Komandan Login Modal (dari login screen) -->
+<div class="modal-overlay" id="komandanLoginScreenModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">⭐ Login Komandan</div>
+    <div class="field-label">PIN Admin (4 digit)</div>
+    <div class="pin-row" id="klsm-pin-row"></div>
+    <button class="btn btn-purple" onclick="loginKomandanFromModal()">🔓 Masuk</button>
+    <button class="btn btn-muted sm" onclick="closeModal('komandanLoginScreenModal')">Batal</button>
+  </div>
+</div>
+
+<!-- Reset Modal -->
+<div class="modal-overlay" id="resetModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" style="color:var(--red)">⚠️ Reset Data</div>
+    <div class="body-text" style="margin-bottom:16px;color:var(--red)">Semua data akan dihapus permanen. Masukkan PIN Admin untuk konfirmasi.</div>
+    <div class="field-label">PIN Admin (4 digit)</div>
+    <div class="pin-row" id="reset-pin-row"></div>
+    <button class="btn btn-red" onclick="doReset()">🗑️ HAPUS SEMUA DATA</button>
+    <button class="btn btn-muted sm" onclick="closeModal('resetModal')">Batal</button>
+  </div>
+</div>
+
+<!-- Add Satpam Modal -->
+<div class="modal-overlay" id="addSatpamModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">👥 Tambah Satpam</div>
+    <div class="field-label">Nama Satpam</div>
+    <input class="field-inp" id="new-satpam-name" type="text" placeholder="Nama lengkap"/>
+    <div class="field-label">Nomor WA (opsional)</div>
+    <input class="field-inp" id="new-satpam-wa" type="tel" placeholder="628123456789"/>
+    <button class="btn btn-gold" onclick="saveSatpam()">💾 Simpan</button>
+    <button class="btn btn-muted sm" onclick="closeModal('addSatpamModal')">Batal</button>
+  </div>
+</div>
+
+<!-- Add Location Modal -->
+<div class="modal-overlay" id="addLocModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="addLocModal-title">📍 Tambah Titik Patroli</div>
+    <input type="hidden" id="edit-loc-id" value=""/>
+    <div class="field-label">Nama Lokasi</div>
+    <input class="field-inp" id="new-loc-name" type="text" placeholder="Contoh: Pos Utama, Blok A-1"/>
+    <div class="field-label">Koordinat GPS</div>
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <input class="field-inp" id="new-loc-lat" type="number" step="any" placeholder="Latitude" style="margin-bottom:0;flex:1"/>
+      <input class="field-inp" id="new-loc-lng" type="number" step="any" placeholder="Longitude" style="margin-bottom:0;flex:1"/>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <button class="btn btn-muted sm mb-0" style="flex:1" onclick="getGPSLocation()">📡 GPS HP</button>
+      <button class="btn btn-blue sm mb-0" style="flex:1" onclick="openGmapsInput()">🗺️ Link Maps</button>
+    </div>
+    <div id="gmaps-input-wrap" style="display:none;margin-bottom:14px">
+      <div class="field-label">Link Google Maps</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:6px">
+        💡 Paste URL panjang dari <strong>address bar browser</strong> setelah buka Google Maps — bukan dari tombol "Bagikan"
+      </div>
+      <input class="field-inp" id="new-loc-gmaps" type="url" placeholder="https://www.google.com/maps/place/.../@-6.xxx,106.xxx" style="margin-bottom:8px"/>
+      <button class="btn btn-blue sm mb-0" onclick="parseGmapsLink()">🔍 Ambil Koordinat</button>
+      <div id="gmaps-status" style="font-size:13px;color:var(--muted);margin-top:8px;display:none;line-height:1.6"></div>
+    </div>
+    <div class="field-label">Radius Validasi (meter)</div>
+    <input class="field-inp" id="new-loc-radius" type="number" value="50" placeholder="50"/>
+    <button class="btn btn-gold" id="addLocModal-save-btn" onclick="saveLocation()">💾 Simpan & Buat QR</button>
+    <button class="btn btn-muted sm" onclick="closeModal('addLocModal')">Batal</button>
+  </div>
+</div>
+
+<!-- QR View Modal -->
+<div class="modal-overlay" id="qrViewModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="qrview-title">QR Code</div>
+    <div class="qr-wrap"><div id="qrview-canvas"></div></div>
+    <div id="qrview-info" style="text-align:center;font-size:14px;color:var(--muted);margin-top:10px"></div>
+    <button class="btn btn-gold sm" onclick="closeModal('qrViewModal')">Tutup</button>
+  </div>
+</div>
+
+<!-- Firebase Config Modal -->
+<div class="modal-overlay" id="fbConfigModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🔥 Konfigurasi Firebase</div>
+    <div class="body-text" style="margin-bottom:16px">Masukkan konfigurasi Firebase project Anda untuk sinkronisasi data real-time.</div>
+    <div class="field-label">API Key</div>
+    <input class="field-inp" id="fb-apikey" type="text" placeholder="AIza..."/>
+    <div class="field-label">Auth Domain</div>
+    <input class="field-inp" id="fb-authdomain" type="text" placeholder="project.firebaseapp.com"/>
+    <div class="field-label">Project ID</div>
+    <input class="field-inp" id="fb-projectid" type="text" placeholder="project-id"/>
+    <div class="field-label">App ID</div>
+    <input class="field-inp" id="fb-appid" type="text" placeholder="1:xxx:web:xxx"/>
+    <button class="btn btn-gold" onclick="saveFbConfig()">💾 Simpan & Hubungkan</button>
+    <button class="btn btn-red sm" onclick="disconnectFb()">⛔ Putuskan Firebase</button>
+    <button class="btn btn-muted sm" onclick="closeModal('fbConfigModal')">Tutup</button>
+  </div>
+</div>
+
+<!-- FITUR BARU: WA Choice Modal -->
+<div class="modal-overlay" id="waChoiceModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📤 Kirim Laporan ke Mana?</div>
+    <div class="card-info" style="margin-bottom:16px">Pilih tujuan pengiriman laporan shift yang baru selesai.</div>
+    <button class="btn btn-purple" id="wa-choice-komandan" onclick="waChoiceKomandan()">📤 Kirim ke Komandan<br><span style="font-size:12px;font-weight:400">Format teknis lengkap</span></button>
+    <button class="btn btn-blue" id="wa-choice-grup" onclick="waChoiceGrup()">📢 Kirim ke Grup RT<br><span style="font-size:12px;font-weight:400">Format ringkas untuk warga</span></button>
+    <button class="btn btn-muted sm" onclick="closeModal('waChoiceModal')">Lewati</button>
+    <div class="card-info" style="margin-top:12px">
+      📸 <strong>Ingat:</strong> Setelah kirim laporan WA, langsung
+      foto selfie serah terima dan kirim ke grup/komandan sebagai
+      lampiran di chat WA yang sama.
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   CONSTANTS & KEYS
+   ============================================================ */
+const KEYS = {
+  SATPAM_LIST:   'vp_satpam_list',
+  LOCATIONS:     'vp_locations',
+  SHIFTS:        'vp_shifts',
+  INCIDENTS:     'vp_incidents',
+  SETTINGS:      'vp_settings',
+  CURRENT_SHIFT: 'vp_current_shift',
+  RT_SETTINGS:   'vp_rt_settings',
+  FB_CONFIG:     'vp_fb_config',
+  SESSION:       'vp_session',
+  LOCAL_PINS:    'vp_local_pins',
+  VIOLATIONS:    'vp_violations',
+  WA_CONFIG:     'vp_wa_config',
+  /* FITUR BARU: Penjadwalan */
+  SCHEDULES:     'vp_schedules',
+};
+
+/* ============================================================
+   TIMING CONSTANTS
+   ============================================================ */
+const TIMING = {
+  TOAST_DEFAULT:      2800,  // ms — durasi toast normal
+  TOAST_LONG:         5000,  // ms — durasi toast error/info panjang
+  SELFIE_REMINDER:    1500,  // ms — delay sebelum reminder selfie muncul
+  SHIFT_END_DELAY:      60,  // ms — jeda UI sebelum proses endShift
+  SHIFT_SAVE_DELAY:     30,  // ms — jeda setelah data shift disimpan
+  QR_FPS:               10,  // fps — frame rate QR scanner
+  QR_BOX:              220,  // px — ukuran kotak QR scan
+  SCHEDULE_TOLERANCE: 7200000, // ms — 2 jam toleransi cocok jadwal
+  SCHEDULE_ONTIME:     600000, // ms — 10 menit batas "tepat waktu"
+  STORAGE_LIMIT:      5242880, // bytes — estimasi batas localStorage (5MB)
+  STORAGE_WARN:           0.7, // 70% — mulai kuning
+  STORAGE_DANGER:         0.9, // 90% — merah, tampilkan peringatan
+};
+
+
+let state = {
+  session: null,
+  currentShift: null,
+  shiftTimerInterval: null,
+  selectedSatpamName: null,
+  selectedSatpam2Name: null,
+  selectedIncType: null,
+  selectedSeverity: null,
+  qrScanner: null,
+  senterTrack: null,
+  currentKomTab: 'master',
+  fbApp: null,
+  fbDb: null,
+  selectedSlmSatpam: null,
+  selectedObSatpam: null,
+  incLocation: null,
+  komFilter: null,
+  _lastEndedShift: null,
+};
+
+/* ============================================================
+   UTILITIES
+   ============================================================ */
+function ls(key, def=null) {
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : def; } catch { return def; }
+}
+function lsSet(key, val) {
+  try {
+    localStorage.setItem(key, JSON.stringify(val));
+    return true;
+  } catch(e) {
+    console.error('lsSet failed:', key, e);
+    if(e && (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED')) {
+      showToast('⚠️ Penyimpanan penuh! Hapus data lama di Konfigurasi.', 'error', TIMING.TOAST_LONG);
+    }
+    return false; // jangan throw — biarkan caller tetap jalan
+  }
+}
+function pad(n) { return String(n).padStart(2,'0'); }
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+function fmtTime(ts) { const d = new Date(ts); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; }
+function fmtDate(ts) { const d = new Date(ts); return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}`; }
+function fmtDateTime(ts) { return `${fmtDate(ts)} ${fmtTime(ts)}`; }
+function fmtDuration(ms) { const s=Math.floor(ms/1000),m=Math.floor(s/60),h=Math.floor(m/60); return `${pad(h)}:${pad(m%60)}:${pad(s%60)}`; }
+function vibrate(pattern=[60,30,60]) { try { if(navigator.vibrate) navigator.vibrate(pattern); } catch{} }
+function safeCreateIcons() { try { if(window.lucide) lucide.createIcons(); } catch{} }
+
+function el(id) { return document.getElementById(id); }
+
+function showToast(msg, type='', duration=TIMING.TOAST_DEFAULT) {
+  const t = el('toast');
+  t.textContent = msg;
+  t.className = 'show' + (type ? ' '+type : '');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.className = '', duration);
+}
+
+/* ============================================================
+   ONBOARDING
+   ============================================================ */
+let obData = {};
+
+function obGoTo(id) {
+  document.querySelectorAll('.ob-screen').forEach(s => s.classList.remove('ob-active'));
+  const target = el(id);
+  if(target) target.classList.add('ob-active');
+  history.pushState({ screen: 'onboarding', ob: id }, '', '');
+}
+
+function showOnboarding() {
+  document.querySelectorAll('.ob-screen').forEach(s => s.classList.remove('ob-active'));
+  el('ob0').classList.add('ob-active');
+  history.pushState({ screen: 'onboarding', ob: 'ob0' }, '', '');
+}
+
+function obBackToLogin() {
+  hideAllOnboarding();
+  showScreen('screenLogin');
+}
+
+function chooseRole(role) {
+  document.querySelectorAll('.ob-choice').forEach(c => c.classList.remove('selected'));
+  el('ch-'+role).classList.add('selected');
+  obData.role = role;
+  setTimeout(() => {
+    if(role === 'satpam') obGoTo('ob1a');
+    else obGoTo('ob1b');
+  }, 150);
+}
+
+// Build PIN inputs
+function buildPinInputs(containerId, length, prefix) {
+  const c = el(containerId);
+  if(!c) return;
+  c.innerHTML = '';
+  for(let i=0; i<length; i++) {
+    const inp = document.createElement('input');
+    inp.type = 'password';
+    inp.inputMode = 'numeric';
+    inp.maxLength = 1;
+    inp.className = 'ob-pin';
+    inp.dataset.idx = i;
+    inp.dataset.prefix = prefix;
+    inp.id = prefix + '_' + i;
+    inp.addEventListener('input', e => {
+      const v = e.target.value.replace(/\D/g,'');
+      e.target.value = v ? v[0] : '';
+      if(v && i < length-1) el(prefix+'_'+(i+1))?.focus();
+    });
+    inp.addEventListener('keydown', e => {
+      if(e.key === 'Backspace' && !e.target.value && i > 0) el(prefix+'_'+(i-1))?.focus();
+    });
+    c.appendChild(inp);
+  }
+}
+function buildModalPins(containerId, length, prefix) {
+  const c = el(containerId);
+  if(!c) return;
+  c.innerHTML = '';
+  for(let i=0; i<length; i++) {
+    const inp = document.createElement('input');
+    inp.type = 'password';
+    inp.inputMode = 'numeric';
+    inp.maxLength = 1;
+    inp.className = 'pin-box';
+    inp.id = prefix + '_' + i;
+    inp.addEventListener('input', e => {
+      const v = e.target.value.replace(/\D/g,'');
+      e.target.value = v ? v[0] : '';
+      if(v && i < length-1) el(prefix+'_'+(i+1))?.focus();
+    });
+    inp.addEventListener('keydown', e => {
+      if(e.key === 'Backspace' && !e.target.value && i > 0) el(prefix+'_'+(i-1))?.focus();
+    });
+    c.appendChild(inp);
+  }
+}
+function readPin(prefix, length) {
+  let pin = '';
+  for(let i=0;i<length;i++) pin += (el(prefix+'_'+i)?.value||'');
+  return pin;
+}
+function clearPin(prefix, length) {
+  for(let i=0;i<length;i++) { const inp=el(prefix+'_'+i); if(inp) inp.value=''; }
+}
+
+function initAllPinInputs() {
+  buildPinInputs('ob4-adminpin', 4, 'ob4a');
+  buildPinInputs('ob4-satpampin', 6, 'ob4s');
+  buildPinInputs('sl-pin-row', 6, 'slp');
+  buildPinInputs('kl-pin-row', 4, 'klp');
+  buildModalPins('klm-pin-row', 4, 'klm');
+  buildModalPins('slm-pin-row', 6, 'slm');
+  buildModalPins('klsm-pin-row', 4, 'klsm');
+  buildModalPins('reset-pin-row', 4, 'rstp');
+  buildModalPins('rw-login-pin', 4, 'rwlp');
+}
+
+function ob2Next() {
+  const rw = el('ob2-rw').value.trim();
+  const rt = el('ob2-rt').value.trim();
+  if(!rw || !rt) { showToast('Isi nomor RW dan RT dulu', 'error'); return; }
+  obData.rw = pad(parseInt(rw));
+  obData.rt = pad(parseInt(rt));
+  obGoTo('ob3');
+}
+function ob3Next() {
+  const rtname = el('ob3-rtname').value.trim();
+  const komname = el('ob3-komname').value.trim();
+  const wa = el('ob3-wa').value.trim();
+  if(!rtname||!komname) { showToast('Isi nama RT dan nama Komandan', 'error'); return; }
+  obData.rtname = rtname;
+  obData.komname = komname;
+  obData.wa = wa;
+  obData.grp = el('ob3-grp').value.trim();
+  obGoTo('ob4');
+}
+function ob4Next() {
+  const adminPin = readPin('ob4a', 4);
+  const satpamPin = readPin('ob4s', 6);
+  if(adminPin.length < 4 || !/^\d{4}$/.test(adminPin)) { showToast('PIN Admin harus 4 digit angka', 'error'); return; }
+  if(satpamPin.length < 6 || !/^\d{6}$/.test(satpamPin)) { showToast('PIN Satpam harus 6 digit angka', 'error'); return; }
+  obData.adminPin = adminPin;
+  obData.satpamPin = satpamPin;
+  // Show review
+  const r = el('ob5-review');
+  r.innerHTML = `
+    <div style="display:grid;gap:10px">
+      <div><span class="text-muted">RW / RT:</span> <strong>RW ${obData.rw} / RT ${obData.rt}</strong></div>
+      <div><span class="text-muted">Nama RT:</span> <strong>${obData.rtname}</strong></div>
+      <div><span class="text-muted">Komandan:</span> <strong>${obData.komname}</strong></div>
+      <div><span class="text-muted">WA Komandan:</span> <strong>${obData.wa||'–'}</strong></div>
+      <div><span class="text-muted">WA Grup:</span> <strong>${obData.grp||'–'}</strong></div>
+      <div><span class="text-muted">PIN Admin:</span> <strong>${'•'.repeat(4)}</strong></div>
+      <div><span class="text-muted">PIN Satpam:</span> <strong>${'•'.repeat(6)}</strong></div>
+    </div>
+  `;
+  obGoTo('ob5');
+}
+function ob5Save() {
+  const key = obData.rw + '_' + obData.rt;
+  const pins = ls(KEYS.LOCAL_PINS, {});
+  pins[key] = { adminPin: obData.adminPin, satpamPin: obData.satpamPin };
+  lsSet(KEYS.LOCAL_PINS, pins);
+  const settings = ls(KEYS.RT_SETTINGS, {});
+  settings[key] = { rtname: obData.rtname, komname: obData.komname, rw: obData.rw, rt: obData.rt };
+  lsSet(KEYS.RT_SETTINGS, settings);
+  const waConf = ls(KEYS.WA_CONFIG, {});
+  waConf[key] = { komWa: obData.wa, grupWa: obData.grp, autoSend: false };
+  lsSet(KEYS.WA_CONFIG, waConf);
+  // Save session as komandan
+  const session = {
+    role: 'komandan', rw: obData.rw, rt: obData.rt,
+    rtLabel: `RW ${obData.rw} / RT ${obData.rt}`,
+    satpamName: '', satpamId: ''
+  };
+  lsSet(KEYS.SESSION, session);
+  state.session = session;
+  obGoTo('ob6');
+  startConfetti();
+}
+
+function satpamLoginFromOb() {
+  const rw = el('sl-rw').value.trim();
+  const rt = el('sl-rt').value.trim();
+  const name = state.selectedObSatpam;
+  const pin = readPin('slp', 6);
+  if(!rw||!rt) { showToast('Isi nomor RW dan RT', 'error'); return; }
+  if(!name) { showToast('Pilih nama satpam dari daftar', 'error'); return; }
+  const key = pad(parseInt(rw))+'_'+pad(parseInt(rt));
+  const pins = ls(KEYS.LOCAL_PINS, {});
+  if(!pins[key] || pins[key].satpamPin !== pin) { showToast('PIN Satpam salah atau RT belum terdaftar', 'error'); return; }
+  const session = {
+    role: 'satpam', rw: pad(parseInt(rw)), rt: pad(parseInt(rt)),
+    rtLabel: `RW ${pad(parseInt(rw))} / RT ${pad(parseInt(rt))}`,
+    satpamName: name, satpamId: uid()
+  };
+  lsSet(KEYS.SESSION, session);
+  state.session = session;
+  hideAllOnboarding();
+  enterApp();
+}
+
+function komandanLoginFromOb() {
+  const rw = el('kl-rw').value.trim();
+  const rt = el('kl-rt').value.trim();
+  const pin = readPin('klp', 4);
+  if(!rw||!rt) { showToast('Isi nomor RW dan RT', 'error'); return; }
+  const key = pad(parseInt(rw))+'_'+pad(parseInt(rt));
+  const pins = ls(KEYS.LOCAL_PINS, {});
+  if(!pins[key] || pins[key].adminPin !== pin) { showToast('PIN Admin salah atau RT belum terdaftar', 'error'); return; }
+  const session = {
+    role: 'komandan', rw: pad(parseInt(rw)), rt: pad(parseInt(rt)),
+    rtLabel: `RW ${pad(parseInt(rw))} / RT ${pad(parseInt(rt))}`,
+    satpamName: '', satpamId: ''
+  };
+  lsSet(KEYS.SESSION, session);
+  state.session = session;
+  hideAllOnboarding();
+  enterApp();
+}
+
+function hideAllOnboarding() {
+  document.querySelectorAll('.ob-screen').forEach(s => s.classList.remove('ob-active'));
+}
+
+/* Helper: render daftar satpam ke container pilihan */
+function _loadSatpamListToModal(rw, rt, listId, noSatpamId, prefix) {
+  const container = el(listId);
+  const noSatpam = el(noSatpamId);
+  if(!container) return;
+  const key = pad(parseInt(rw||'0')) + '_' + pad(parseInt(rt||'0'));
+  const allSatpams = ls(KEYS.SATPAM_LIST, {});
+  const satpams = allSatpams[key] || [];
+  // Reset pilihan
+  if(prefix === 'slm') state.selectedSlmSatpam = null;
+  if(prefix === 'ob') state.selectedObSatpam = null;
+  if(satpams.length === 0) {
+    container.innerHTML = '';
+    container.style.display = 'none';
+    if(noSatpam) noSatpam.style.display = 'block';
+    return;
+  }
+  container.style.display = 'block';
+  if(noSatpam) noSatpam.style.display = 'none';
+  container.innerHTML = satpams.map(s => `
+    <div class="satpam-option" id="sp-opt-${prefix}-${s.id}"
+      onclick="_selectSatpamLogin('${s.name.replace(/'/g,"\\'")}','${prefix}','${s.id}')">
+      👤 ${s.name}
+    </div>`).join('');
+}
+
+function _selectSatpamLogin(name, prefix, id) {
+  // Hapus highlight semua
+  document.querySelectorAll(`[id^="sp-opt-${prefix}-"]`).forEach(el => el.style.background = '');
+  const target = el(`sp-opt-${prefix}-${id}`);
+  if(target) target.style.background = 'rgba(255,200,50,.15)';
+  if(prefix === 'slm') state.selectedSlmSatpam = name;
+  if(prefix === 'ob') state.selectedObSatpam = name;
+}
+
+/* Dipanggil saat RW/RT berubah di onboarding satpam login */
+function obLoadSatpamList() {
+  const rw = el('sl-rw').value.trim();
+  const rt = el('sl-rt').value.trim();
+  if(!rw || !rt) return;
+  _loadSatpamListToModal(rw, rt, 'sl-satpam-list', 'sl-no-satpam', 'ob');
+}
+
+function goToApp() {
+  hideAllOnboarding();
+  enterApp();
+}
+
+/* ============================================================
+   LOGIN FLOW
+   ============================================================ */
+function getAdminPin(rw, rt) {
+  const key = rw + '_' + rt;
+  const pins = ls(KEYS.LOCAL_PINS, {});
+  return pins[key]?.adminPin || '1606';
+}
+function getSatpamPin(rw, rt) {
+  const key = rw + '_' + rt;
+  const pins = ls(KEYS.LOCAL_PINS, {});
+  return pins[key]?.satpamPin || '';
+}
+function getRWKey() {
+  const s = state.session;
+  return s ? s.rw + '_' + s.rt : '';
+}
+
+function openLoginModal(role) {
+  const rw = el('login-rw').value.trim();
+  const rt = el('login-rt').value.trim();
+  if(role !== 'ketuarw' && (!rw||!rt)) {
+    showToast('Isi nomor RW dan RT dulu', 'error'); return;
+  }
+  if(role === 'satpam') {
+    clearPin('slm', 6);
+    state.selectedSlmSatpam = null;
+    // Load daftar satpam berdasarkan RW/RT
+    _loadSatpamListToModal(rw, rt, 'slm-satpam-list', 'slm-no-satpam', 'slm');
+    openModal('satpamLoginModal');
+    setTimeout(() => el('slm_0')?.focus(), 300);
+  } else if(role === 'komandan') {
+    clearPin('klsm', 4);
+    openModal('komandanLoginScreenModal');
+    setTimeout(() => el('klsm_0')?.focus(), 300);
+  } else if(role === 'ketuarw') {
+    clearPin('rwlp', 4);
+    openModal('rwLoginModal');
+  }
+}
+
+function loginSatpamFromModal() {
+  const name = state.selectedSlmSatpam;
+  const pin = readPin('slm', 6);
+  const rw = pad(parseInt(el('login-rw').value||'0'));
+  const rt = pad(parseInt(el('login-rt').value||'0'));
+  if(!name) { showToast('Pilih nama satpam dulu', 'error'); return; }
+  const sp = getSatpamPin(rw, rt);
+  if(!sp) { showToast('RT belum terdaftar. Setup dulu oleh Komandan.', 'error'); return; }
+  if(sp !== pin) { showToast('PIN Satpam salah', 'error'); clearPin('slm',6); return; }
+  const session = {
+    role:'satpam', rw, rt, rtLabel:`RW ${rw} / RT ${rt}`,
+    satpamName: name, satpamId: uid()
+  };
+  lsSet(KEYS.SESSION, session);
+  state.session = session;
+  closeModal('satpamLoginModal');
+  enterApp();
+}
+
+function loginKomandanFromModal() {
+  const pin = readPin('klsm', 4);
+  const rw = pad(parseInt(el('login-rw').value||'0'));
+  const rt = pad(parseInt(el('login-rt').value||'0'));
+  const adminPin = getAdminPin(rw, rt);
+  if(pin !== adminPin) { showToast('PIN Admin salah', 'error'); clearPin('klsm',4); return; }
+  const session = { role:'komandan', rw, rt, rtLabel:`RW ${rw} / RT ${rt}`, satpamName:'', satpamId:'' };
+  lsSet(KEYS.SESSION, session);
+  state.session = session;
+  closeModal('komandanLoginScreenModal');
+  enterApp();
+}
+
+function loginKetuaRW() {
+  const rawRw = el('rw-login-rw').value.trim();
+  if(!rawRw) { showToast('Isi nomor RW dulu', 'error'); return; }
+  const rw = pad(parseInt(rawRw));
+  const pin = readPin('rwlp', 4);
+  if(pin.length < 4) { showToast('Isi PIN 4 digit', 'error'); return; }
+  const pins = ls(KEYS.LOCAL_PINS, {});
+  let found = false;
+  for(const key in pins) {
+    const [keyRw] = key.split('_');
+    if((keyRw === rw || keyRw === String(parseInt(rawRw))) && pins[key].adminPin === pin) { found=true; break; }
+  }
+  if(!found) { showToast('PIN salah atau RW tidak ditemukan', 'error'); return; }
+  const session = { role:'ketuarw', rw, rt:'00', rtLabel:`RW ${rw}`, satpamName:'', satpamId:'' };
+  lsSet(KEYS.SESSION, session);
+  state.session = session;
+  closeModal('rwLoginModal');
+  enterApp();
+}
+
+function doLogout() {
+  // Reset tombol selesai dulu jika sedang disabled karena error
+  const btnSelesai = el('btn-selesai-shift');
+  if(btnSelesai) { btnSelesai.disabled = false; btnSelesai.textContent = '✅ SELESAI & KIRIM WA'; }
+
+  if(!confirm('Keluar dari akun?')) return;
+  /* FIREBASE SYNC */
+  stopRealtimeListeners();
+  lsSet(KEYS.SESSION, null);
+  state.session = null;
+  state.currentShift = null;
+  stopShiftTimer();
+  stopQRScanner();
+  hideAllOnboarding();
+  const lrw = el('login-rw');
+  const lrt = el('login-rt');
+  if(lrw) lrw.value = '';
+  if(lrt) lrt.value = '';
+  showScreen('screenLogin');
+}
+
+/* ============================================================
+   SCREEN MANAGEMENT
+   ============================================================ */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  el(id)?.classList.add('active');
+  // Push state ke history agar back button native berfungsi
+  const state_label = id === 'screenLogin' ? 'login' : id;
+  history.pushState({ screen: id }, '', '');
+}
+
+// Handle back button native (Android)
+window.addEventListener('popstate', function(e) {
+  const st = e.state || {};
+
+  // 1. Modal terbuka — tutup dulu
+  const openModal = document.querySelector('.modal-overlay.open');
+  if(openModal) {
+    openModal.classList.remove('open');
+    return;
+  }
+
+  // 2. Onboarding aktif
+  const activeOb = document.querySelector('.ob-screen.ob-active');
+  if(activeOb) {
+    if(activeOb.id === 'ob0') {
+      // Di halaman awal onboarding → kembali ke login
+      obBackToLogin();
+    } else if(st.ob) {
+      // Kembali ke step onboarding sebelumnya
+      document.querySelectorAll('.ob-screen').forEach(s => s.classList.remove('ob-active'));
+      const target = el(st.ob);
+      if(target) target.classList.add('ob-active');
+    } else {
+      obBackToLogin();
+    }
+    return;
+  }
+
+  const active = document.querySelector('.screen.active');
+  const activeId = active ? active.id : '';
+
+  // 3. Di Komandan: back ke tab sebelumnya jika ada
+  if(activeId === 'screenKomandan') {
+    if(st.screen === 'screenKomandan' && st.tab && st.tab !== state.currentKomTab) {
+      state.currentKomTab = st.tab;
+      document.querySelectorAll('#kom-tab-scroll .tab-btn').forEach(b => {
+        b.classList.toggle('active', (b.getAttribute('onclick')||'').includes("'"+st.tab+"'"));
+      });
+      renderKomTab(st.tab);
+    } else {
+      goBackFromKomandan();
+      history.pushState({ screen: state.komandanPrev || 'screenSatpam' }, '', '');
+    }
+    return;
+  }
+
+  // 4. Di Satpam atau KetuaRW — konfirmasi keluar
+  if(activeId === 'screenSatpam' || activeId === 'screenKetuaRW') {
+    if(confirm('Keluar dari aplikasi?')) {
+      doLogout();
+    } else {
+      history.pushState({ screen: activeId }, '', '');
+    }
+    return;
+  }
+
+  // 5. Di Login — biarkan browser handle
+  if(activeId === 'screenLogin') return;
+
+  // 6. Fallback
+  history.pushState({ screen: activeId }, '', '');
+});
+
+function enterApp() {
+  const s = state.session;
+  if(!s || !s.role) { showScreen('screenLogin'); return; }
+  if(s.role === 'satpam') {
+    showScreen('screenSatpam');
+    initSatpamScreen();
+  } else if(s.role === 'komandan') {
+    showScreen('screenKomandan');
+    initKomandanScreen();
+  } else if(s.role === 'ketuarw') {
+    showScreen('screenKetuaRW');
+    initKetuaRWScreen();
+  }
+}
+
+/* ============================================================
+   MODALS
+   ============================================================ */
+function openModal(id) {
+  el(id).classList.add('open');
+  history.pushState({ screen: 'modal', modal: id }, '', '');
+}
+function closeModal(id) {
+  el(id).classList.remove('open');
+}
+
+/* ============================================================
+   SATPAM SCREEN
+   ============================================================ */
+function initSatpamScreen() {
+  const s = state.session;
+  el('hdr-badge-satpam').textContent = s.rtLabel;
+  updateSatpamTips();
+  updateStatBoxes();
+  checkCurrentShift();
+  renderShiftHistory();
+  renderReportStats();
+}
+
+function updateSatpamTips() {
+  const locs = getLocations();
+  const satpams = getSatpams();
+  el('tip-no-loc').classList.toggle('hidden', locs.length > 0);
+  el('tip-no-satpam').classList.toggle('hidden', satpams.length > 0);
+}
+
+function updateStatBoxes() {
+  const shifts = getShifts();
+  const locs = getLocations();
+  el('stat-total-shift').textContent = shifts.length;
+  el('stat-total-loc').textContent = locs.length;
+}
+
+function switchSatpamTab(tab) {
+  document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+  el('tab-'+tab+'-btn').classList.add('active');
+  document.querySelectorAll('.satpam-page').forEach(p => p.classList.remove('satpam-page-show'));
+  el('page-'+tab).classList.add('satpam-page-show');
+  if(tab === 'laporan') {
+    renderShiftHistory();
+    renderReportStats();
+    /* FITUR BARU: Render storage dan sync */
+    const syncWrap = el('sync-status-wrap');
+    if(syncWrap) syncWrap.innerHTML = renderSyncStatus();
+    const storWrap = el('storage-indicator-wrap');
+    if(storWrap) storWrap.innerHTML = renderStorageIndicator();
+  }
+}
+
+function checkCurrentShift() {
+  const cur = ls(KEYS.CURRENT_SHIFT);
+  if(cur && cur.rw === state.session.rw && cur.rt === state.session.rt) {
+    state.currentShift = cur;
+    showActiveShiftUI();
+  } else {
+    showNoShiftUI();
+  }
+}
+
+function showNoShiftUI() {
+  el('no-shift-state').classList.remove('hidden');
+  el('active-shift-state').classList.add('hidden');
+  stopShiftTimer();
+  stopQRScanner();
+}
+function showActiveShiftUI() {
+  el('no-shift-state').classList.add('hidden');
+  el('active-shift-state').classList.remove('hidden');
+  const shift = state.currentShift;
+  el('shift-satpam-name').textContent = shift.satpamName + (shift.satpam2Name ? ' + ' + shift.satpam2Name : '');
+  el('shift-start-time').textContent = 'Mulai: ' + fmtDateTime(shift.startTime);
+  startShiftTimer();
+  renderChecklist();
+  initQRScanner();
+}
+
+function startShiftTimer() {
+  stopShiftTimer();
+  state.shiftTimerInterval = setInterval(() => {
+    if(!state.currentShift) return;
+    const elapsed = Date.now() - state.currentShift.startTime;
+    el('shift-timer').textContent = fmtDuration(elapsed);
+  }, 1000);
+}
+function stopShiftTimer() {
+  try { clearInterval(state.shiftTimerInterval); } catch(_) {}
+  state.shiftTimerInterval = null;
+}
+
+function stopQRScanner() {
+  const scanner = state.qrScanner;
+  state.qrScanner = null; // null-kan DULU agar tidak dipanggil dua kali
+  if(scanner) {
+    try {
+      const p = scanner.stop();
+      if(p && typeof p.catch === 'function') p.catch(() => {});
+    } catch(_) {}
+  }
+}
+
+/* ============================================================
+   SHIFT MANAGEMENT
+   ============================================================ */
+/* FITUR BARU: Shift Dua Satpam */
+function openShiftModal() {
+  const satpams = getSatpams();
+  const list = el('satpam-select-list');
+  const list2 = el('satpam2-select-list');
+  state.selectedSatpamName = null;
+  state.selectedSatpam2Name = null;
+  if(satpams.length === 0) {
+    list.innerHTML = '<div class="satpam-option">+ Ketik nama di bawah</div>';
+    el('custom-name-wrap').style.display = 'block';
+    list2.innerHTML = '';
+    el('custom-name2-wrap').style.display = 'none';
+  } else {
+    list.innerHTML = satpams.map(s => `
+      <div class="satpam-option" onclick="selectSatpamForShift(this,'${s.name.replace(/'/g,"\\'")}',1)">
+        👤 ${s.name}
+      </div>`).join('') + `<div class="satpam-option" onclick="showCustomName(this,1)">✏️ Nama lain...</div>`;
+    el('custom-name-wrap').style.display = 'none';
+    list2.innerHTML = `<div class="satpam-option selected2-default" id="satpam2-default" onclick="selectSatpam2Default(this)" style="background:rgba(255,200,50,.08)">👤 Hanya 1 satpam (default)</div>` +
+      satpams.map(s => `
+      <div class="satpam-option" onclick="selectSatpamForShift(this,'${s.name.replace(/'/g,"\\'")}',2)">
+        👤 ${s.name}
+      </div>`).join('') + `<div class="satpam-option" onclick="showCustomName(this,2)">✏️ Nama lain...</div>`;
+    el('custom-name2-wrap').style.display = 'none';
+  }
+  openModal('shiftModal');
+}
+function selectSatpam2Default(optEl) {
+  document.querySelectorAll('#satpam2-select-list .satpam-option').forEach(o => o.style.background='');
+  optEl.style.background = 'rgba(255,200,50,.12)';
+  state.selectedSatpam2Name = null;
+  el('custom-name2-wrap').style.display = 'none';
+}
+function selectSatpamForShift(optEl, name, slot) {
+  if(slot === 1) {
+    document.querySelectorAll('#satpam-select-list .satpam-option').forEach(o => o.style.background='');
+    optEl.style.background = 'rgba(255,200,50,.12)';
+    state.selectedSatpamName = name;
+    el('custom-name-wrap').style.display = 'none';
+  } else {
+    document.querySelectorAll('#satpam2-select-list .satpam-option').forEach(o => o.style.background='');
+    optEl.style.background = 'rgba(255,200,50,.12)';
+    state.selectedSatpam2Name = name;
+    el('custom-name2-wrap').style.display = 'none';
+  }
+}
+function showCustomName(optEl, slot) {
+  if(slot === 1) {
+    document.querySelectorAll('#satpam-select-list .satpam-option').forEach(o => o.style.background='');
+    optEl.style.background = 'rgba(255,200,50,.12)';
+    el('custom-name-wrap').style.display = 'block';
+    state.selectedSatpamName = null;
+  } else {
+    document.querySelectorAll('#satpam2-select-list .satpam-option').forEach(o => o.style.background='');
+    optEl.style.background = 'rgba(255,200,50,.12)';
+    el('custom-name2-wrap').style.display = 'block';
+    state.selectedSatpam2Name = null;
+  }
+}
+function startShift() {
+  let name = state.selectedSatpamName || el('shift-custom-name').value.trim();
+  let name2 = state.selectedSatpam2Name || (el('shift-custom-name2') ? el('shift-custom-name2').value.trim() : '');
+  if(!name) { showToast('Pilih atau masukkan nama dulu', 'error'); return; }
+  if(name2 && name2 === name) { showToast('Satpam kedua tidak boleh sama dengan satpam pertama', 'error'); return; }
+  const shift = {
+    id: uid(), rw: state.session.rw, rt: state.session.rt,
+    satpamName: name,
+    satpam2Name: name2 || null,
+    startTime: Date.now(),
+    checkedLocs: [], incidents: [],
+    joinCode: Math.floor(100000 + Math.random()*900000).toString()
+  };
+  state.currentShift = shift;
+  lsSet(KEYS.CURRENT_SHIFT, shift);
+  closeModal('shiftModal');
+  showToast('Shift dimulai! Selamat bertugas 🛡️', 'success');
+  showActiveShiftUI();
+}
+
+function openJoinShiftModal() { openModal('joinShiftModal'); }
+function joinShift() {
+  showToast('Fitur Join Shift memerlukan Firebase aktif', 'warn');
+  closeModal('joinShiftModal');
+}
+
+/* ============================================================
+   QR SCANNER
+   ============================================================ */
+function initQRScanner() {
+  if(state.qrScanner) return;
+  if(!window.Html5Qrcode) { el('qr-status').textContent = 'Library QR tidak tersedia'; return; }
+  const reader = el('qr-reader');
+  if(!reader) return;
+  state.qrScanner = new Html5Qrcode('qr-reader');
+  const config = { fps:TIMING.QR_FPS, qrbox:{ width:TIMING.QR_BOX, height:TIMING.QR_BOX }, aspectRatio:1.0 };
+  state.qrScanner.start({ facingMode:'environment' }, config, onQRSuccess, ()=>{}).catch(err => {
+    el('qr-status').textContent = '📷 Aktifkan izin kamera';
+  });
+}
+
+function onQRSuccess(decoded) {
+  let payload;
+  try { payload = JSON.parse(decoded); } catch {
+    showToast('QR tidak valid', 'error'); return;
+  }
+  if(!payload.id || !payload.rw || !payload.rt) {
+    showToast('Format QR tidak dikenali', 'error'); return;
+  }
+  // Cek shift aktif
+  if(!state.currentShift) {
+    showToast('⚠️ Tidak ada shift aktif. Mulai shift dulu.', 'warn'); return;
+  }
+  // Cross-territory check
+  if(payload.rw !== state.session.rw || payload.rt !== state.session.rt) {
+    logViolation('cross_territory', payload, 'QR dari wilayah lain');
+    showToast('⚠️ QR dari wilayah lain! Dicatat.', 'warn');
+    return;
+  }
+  // Check already scanned
+  if(state.currentShift.checkedLocs.includes(payload.id)) {
+    showToast('Titik ini sudah discan ✅', '');
+    return;
+  }
+  // GPS validation
+  if(payload.lat && payload.lng && navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(pos => {
+      const dist = calcDist(pos.coords.latitude, pos.coords.longitude, payload.lat, payload.lng);
+      if(dist > (payload.radius || 100)) {
+        logViolation('gps_out_of_range', payload, `Jarak ${Math.round(dist)}m, radius ${payload.radius||100}m`);
+        showToast(`⚠️ Di luar jangkauan GPS (${Math.round(dist)}m)`, 'warn');
+      } else {
+        markLocationScanned(payload);
+      }
+    }, () => markLocationScanned(payload));
+  } else {
+    markLocationScanned(payload);
+  }
+}
+
+function markLocationScanned(payload) {
+  if(!state.currentShift) return;
+  // Cegah duplikat scan
+  if(state.currentShift.checkedLocs.includes(payload.id)) {
+    showToast(`✅ ${payload.name} sudah pernah discan`, '');
+    return;
+  }
+  state.currentShift.checkedLocs.push(payload.id);
+  state.currentShift.checkedTimes = state.currentShift.checkedTimes || {};
+  state.currentShift.checkedTimes[payload.id] = Date.now();
+  lsSet(KEYS.CURRENT_SHIFT, state.currentShift);
+  vibrate([80,30,80]);
+  showToast(`✅ ${payload.name} terscan!`, 'success');
+  renderChecklist();
+}
+
+function calcDist(lat1,lon1,lat2,lon2) {
+  const R=6371000,dLat=(lat2-lat1)*Math.PI/180,dLon=(lon2-lon1)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+function logViolation(type, payload, note) {
+  const vios = ls(KEYS.VIOLATIONS, []);
+  vios.unshift({ type, payload, note, ts: Date.now(), session: state.session });
+  if(vios.length > 200) vios.length = 200;
+  lsSet(KEYS.VIOLATIONS, vios);
+}
+
+/* ============================================================
+   CHECKLIST
+   ============================================================ */
+function renderChecklist() {
+  const locs = getLocations();
+  const checked = state.currentShift?.checkedLocs || [];
+  const times = state.currentShift?.checkedTimes || {};
+  const container = el('checklist-items');
+  if(!container) return;
+  if(locs.length === 0) { container.innerHTML = '<div class="body-text text-center" style="padding:12px">Belum ada titik lokasi</div>'; return; }
+  container.innerHTML = locs.map(loc => {
+    const done = checked.includes(loc.id);
+    return `<div class="check-item ${done?'done':''}">
+      <div class="check-dot">${done?'✓':''}</div>
+      <div class="check-name">${loc.name}</div>
+      <div class="check-time">${done ? fmtTime(times[loc.id]||Date.now()) : '–'}</div>
+    </div>`;
+  }).join('');
+  const pct = locs.length ? Math.min(100, Math.round(checked.length/locs.length*100)) : 0;
+  el('check-progress').style.width = pct+'%';
+  el('check-progress-text').textContent = `${checked.length} / ${locs.length} titik`;
+}
+
+/* ============================================================
+   END SHIFT
+   ============================================================ */
+async function endShift() {
+  const shift = state.currentShift;
+  if(!shift) { showToast('Tidak ada shift aktif', 'error'); return; }
+  if(!shift.id) { shift.id = uid(); }
+  const sessionKey = getKey();
+  if(!sessionKey) { showToast('Session tidak valid, silakan login ulang', 'error'); return; }
+  const btn = el('btn-selesai-shift');
+  if(btn && btn.disabled) return;
+  if(btn) { btn.disabled = true; btn.textContent = '⏳ Menyimpan...'; }
+  await new Promise(r => setTimeout(r, TIMING.SHIFT_END_DELAY));
+  stopShiftTimer();
+  stopQRScanner();
+  try {
+    shift.endTime = Date.now();
+    shift.duration = shift.endTime - shift.startTime;
+    await _saveShiftData(shift, sessionKey);
+    state.currentShift = null;
+    showToast('Shift selesai! 📤', 'success');
+    _sendShiftNotification(shift);
+    showNoShiftUI();
+    updateStatBoxes();
+    renderShiftHistory();
+  } catch(e) {
+    console.error('endShift error:', e);
+    const msg = (e && e.message) ? e.message : String(e);
+    showToast('❌ Gagal menyimpan: ' + msg, 'error', TIMING.TOAST_LONG);
+    if(btn) { btn.disabled = false; btn.textContent = '✅ SELESAI & KIRIM WA'; }
+  }
+}
+
+async function _saveShiftData(shift, sessionKey) {
+  await new Promise(r => setTimeout(r, TIMING.SHIFT_SAVE_DELAY));
+  // 1. Simpan shift ke history DULU
+  const allShifts = ls(KEYS.SHIFTS, {});
+  const keyShifts = allShifts[sessionKey] || [];
+  keyShifts.unshift(shift);
+  allShifts[sessionKey] = keyShifts;
+  lsSet(KEYS.SHIFTS, allShifts);
+  /* FIREBASE SYNC */
+  const base = `rw/${state.session.rw}/rt/${state.session.rt}`;
+  fbSet(`${base}/shifts/${shift.id}`, shift);
+  // 2. Baru hapus current shift dari localStorage
+  lsSet(KEYS.CURRENT_SHIFT, null);
+}
+
+function _sendShiftNotification(shift) {
+  openWaChoiceModal(shift);
+}
+
+/* ============================================================
+   WHATSAPP
+   ============================================================ */
+function sendShiftWA(shift) {
+  const s = state.session;
+  const key = s.rw+'_'+s.rt;
+  const waConf = ls(KEYS.WA_CONFIG,{})[key] || {};
+  const locs = getLocations();
+  const checked = shift.checkedLocs || [];
+  const incs = shift.incidents || [];
+  const dur = fmtDuration(shift.duration||0);
+  const pct = locs.length ? Math.round(checked.length/locs.length*100) : 0;
+  const rtSettings = ls(KEYS.RT_SETTINGS,{})[key] || {};
+  /* FITUR BARU: Format satpam2 */
+  const satpamLine = shift.satpam2Name ? `👮 ${shift.satpamName} + ${shift.satpam2Name} (Shift Bersama)` : `👮 ${shift.satpamName}`;
+  let text = `🛡️ *LAPORAN PATROLI VP*\n`;
+  text += `📍 ${rtSettings.rtname||s.rtLabel}\n`;
+  text += `${satpamLine}\n`;
+  text += `🕐 ${fmtDateTime(shift.startTime)} – ${fmtDateTime(shift.endTime)}\n`;
+  text += `⏱ Durasi: ${dur}\n`;
+  text += `✅ Titik discan: ${checked.length}/${locs.length} (${pct}%)\n`;
+  if(incs.length) text += `⚠️ Kejadian: ${incs.length}\n`;
+  text += `\n— Patroli VP v1.0 —`;
+  const wa = (waConf.komWa || '').replace(/\D/g,'');
+  if(!wa) {
+    showToast('⚠️ Nomor WA belum dikonfigurasi. Atur di menu Konfigurasi.', 'warn', TIMING.TOAST_LONG);
+    return;
+  }
+  const url = 'https://wa.me/' + wa + '?text=' + encodeURIComponent(text);
+  window.open(url, '_blank');
+  /* FITUR BARU: Reminder selfie setelah WA terbuka */
+  setTimeout(() => {
+    showToast('📸 Jangan lupa selfie & kirim foto via WA!', 'info', TIMING.TOAST_LONG);
+  }, TIMING.SELFIE_REMINDER);
+}
+
+/* FITUR BARU: Format ringkas untuk grup RT */
+function sendShiftWAGrup(shift) {
+  const s = state.session;
+  const key = s.rw+'_'+s.rt;
+  const waConf = ls(KEYS.WA_CONFIG,{})[key] || {};
+  const locs = getLocations();
+  const checked = shift.checkedLocs || [];
+  const incs = shift.incidents || [];
+  const dur = fmtDuration(shift.duration||0);
+  const pct = locs.length ? Math.round(checked.length/locs.length*100) : 0;
+  const rtSettings = ls(KEYS.RT_SETTINGS,{})[key] || {};
+  const satpamLine = shift.satpam2Name ? `👮 ${shift.satpamName} (+ ${shift.satpam2Name})` : `👮 ${shift.satpamName}`;
+  const startH = fmtTime(shift.startTime);
+  const endH = shift.endTime ? fmtTime(shift.endTime) : '–';
+  const jamDur = Math.round((shift.duration||0)/3600000);
+  const salam = new Date().getHours() < 10 ? 'Selamat pagi! 🌅' : new Date().getHours() < 15 ? 'Selamat siang! ☀️' : new Date().getHours() < 18 ? 'Selamat sore! 🌇' : 'Selamat malam! 🌙';
+  let text = `🛡️ *Patroli VP*\n`;
+  text += `📍 ${rtSettings.rtname||s.rtLabel}\n`;
+  text += `${satpamLine}\n`;
+  text += `✅ ${checked.length}/${locs.length} titik discan (${pct}%)\n`;
+  text += `🕐 ${startH} – ${endH} (${jamDur}j)\n`;
+  text += `⚠️ ${incs.length} kejadian\n`;
+  text += incs.length ? '' : `Aman. ${salam}\n`;
+  text += `📸 Foto serah terima menyusul.`;
+  const wa = (waConf.grupWa || '').replace(/\D/g,'');
+  if(!wa) {
+    showToast('⚠️ Nomor WA Grup RT belum dikonfigurasi.', 'warn', TIMING.TOAST_LONG);
+    return;
+  }
+  const url = 'https://wa.me/' + wa + '?text=' + encodeURIComponent(text);
+  window.open(url, '_blank');
+  /* FITUR BARU: Reminder selfie setelah WA terbuka */
+  setTimeout(() => {
+    showToast('📸 Jangan lupa selfie & kirim foto via WA!', 'info', TIMING.TOAST_LONG);
+  }, TIMING.SELFIE_REMINDER);
+}
+
+function sendWaReport() {
+  const shifts = getShifts();
+  if(shifts.length === 0) { showToast('Belum ada shift', 'error'); return; }
+  // Kirim laporan shift terakhir yang tersimpan
+  sendShiftWA(shifts[0]);
+}
+
+/* ============================================================
+   INCIDENTS
+   ============================================================ */
+function openIncidentModal() {
+  state.selectedIncType = null;
+  state.selectedSeverity = null;
+  state.incLocation = null;
+  document.querySelectorAll('.inc-item').forEach(i => i.classList.remove('selected'));
+  document.querySelectorAll('.sev-item').forEach(i => i.classList.remove('selected'));
+  el('inc-desc').value = '';
+  el('inc-loc-manual-wrap').style.display = 'none';
+  el('inc-loc-display').style.display = 'none';
+  el('inc-loc-text').value = '';
+  // Render daftar lokasi patroli yang sudah terscan + yang ada
+  _renderIncLocList();
+  openModal('incidentModal');
+}
+
+function _renderIncLocList() {
+  const container = el('inc-loc-list');
+  const locs = getLocations();
+  const checked = state.currentShift?.checkedLocs || [];
+  if(locs.length === 0) {
+    container.innerHTML = '<div style="padding:12px;font-size:13px;color:var(--muted);text-align:center">Belum ada titik patroli terdaftar</div>';
+    return;
+  }
+  // Tampilkan titik yang sudah discan dulu, lalu yang belum
+  const sorted = [...locs].sort((a,b) => {
+    const aChecked = checked.includes(a.id);
+    const bChecked = checked.includes(b.id);
+    if(aChecked && !bChecked) return -1;
+    if(!aChecked && bChecked) return 1;
+    return 0;
+  });
+  container.innerHTML = sorted.map(loc => {
+    const isChecked = checked.includes(loc.id);
+    return `<div class="satpam-option" id="inc-loc-opt-${loc.id}"
+      onclick="_selectIncLoc('${loc.id}','${loc.name.replace(/'/g,"\\'")}',${loc.lat||'null'},${loc.lng||'null'})"
+      style="font-size:14px;padding:12px 14px;${isChecked?'color:var(--green)':''}">
+      ${isChecked?'✅':'📍'} ${loc.name}${isChecked?' <span style="font-size:11px;opacity:.7">(sudah discan)</span>':''}
+    </div>`;
+  }).join('');
+}
+
+function _selectIncLoc(id, name, lat, lng) {
+  document.querySelectorAll('[id^="inc-loc-opt-"]').forEach(o => o.style.background = '');
+  const optEl = el('inc-loc-opt-'+id);
+  if(optEl) optEl.style.background = 'rgba(255,200,50,.15)';
+  state.incLocation = { name, lat, lng, source: 'qr' };
+  el('inc-loc-manual-wrap').style.display = 'none';
+  const disp = el('inc-loc-display');
+  disp.style.display = 'block';
+  disp.innerHTML = `📍 <strong>${name}</strong>${lat&&lng?` <a href="https://maps.google.com/?q=${lat},${lng}" target="_blank" style="color:var(--blue);font-size:12px">Lihat Maps 🗺️</a>`:''}`;
+}
+
+function incLocManual() {
+  document.querySelectorAll('[id^="inc-loc-opt-"]').forEach(el => el.style.background = '');
+  state.incLocation = null;
+  const wrap = el('inc-loc-manual-wrap');
+  wrap.style.display = wrap.style.display === 'none' ? 'block' : 'none';
+  el('inc-loc-display').style.display = 'none';
+  if(wrap.style.display === 'block') setTimeout(() => el('inc-loc-text').focus(), 100);
+}
+
+function incLocGPS() {
+  if(!navigator.geolocation) { showToast('GPS tidak tersedia', 'error'); return; }
+  showToast('Mengambil lokasi GPS...', '');
+  navigator.geolocation.getCurrentPosition(pos => {
+    const lat = pos.coords.latitude;
+    const lng = pos.coords.longitude;
+    state.incLocation = { name: `GPS: ${lat.toFixed(5)}, ${lng.toFixed(5)}`, lat, lng, source: 'gps' };
+    el('inc-loc-manual-wrap').style.display = 'none';
+    document.querySelectorAll('[id^="inc-loc-opt-"]').forEach(el => el.style.background = '');
+    const disp = el('inc-loc-display');
+    disp.style.display = 'block';
+    disp.innerHTML = `📡 <strong>GPS: ${lat.toFixed(5)}, ${lng.toFixed(5)}</strong> <a href="https://maps.google.com/?q=${lat},${lng}" target="_blank" style="color:var(--blue);font-size:12px">Lihat Maps 🗺️</a>`;
+    showToast('Lokasi GPS berhasil diambil 📡', 'success');
+  }, () => showToast('Gagal mendapatkan GPS', 'error'));
+}
+function selectIncType(itemEl, type) {
+  document.querySelectorAll('.inc-item').forEach(i => i.classList.remove('selected'));
+  itemEl.classList.add('selected');
+  state.selectedIncType = type;
+}
+function selectSeverity(itemEl, sev) {
+  document.querySelectorAll('.sev-item').forEach(i => i.classList.remove('selected'));
+  itemEl.classList.add('selected');
+  state.selectedSeverity = sev;
+}
+function submitIncident() {
+  if(!state.selectedIncType) { showToast('Pilih jenis kejadian dulu', 'error'); return; }
+  if(!state.selectedSeverity) { showToast('Pilih tingkat keparahan dulu', 'error'); return; }
+  // Kumpulkan lokasi
+  let location = state.incLocation;
+  const manualText = el('inc-loc-text').value.trim();
+  if(!location && manualText) {
+    location = { name: manualText, lat: null, lng: null, source: 'manual' };
+  }
+  const inc = {
+    id: uid(), type: state.selectedIncType, severity: state.selectedSeverity,
+    desc: el('inc-desc').value.trim(),
+    ts: Date.now(),
+    rw: state.session.rw, rt: state.session.rt,
+    satpamName: state.session.satpamName,
+    location: location || null,
+  };
+  if(state.currentShift) {
+    state.currentShift.incidents = state.currentShift.incidents || [];
+    state.currentShift.incidents.push(inc);
+    try { lsSet(KEYS.CURRENT_SHIFT, state.currentShift); } catch(e) {}
+  }
+  const incidents = ls(KEYS.INCIDENTS, []);
+  incidents.unshift(inc);
+  try { lsSet(KEYS.INCIDENTS, incidents); } catch(e) {}
+  /* FIREBASE SYNC */
+  const base = `rw/${state.session.rw}/rt/${state.session.rt}`;
+  fbSet(`${base}/incidents/${inc.id}`, inc);
+  const s = state.session;
+  const key = s.rw+'_'+s.rt;
+  const waConf = ls(KEYS.WA_CONFIG,{})[key] || {};
+  const rtSettings = ls(KEYS.RT_SETTINGS,{})[key] || {};
+  const sevEmoji = inc.severity==='Berat'?'🔴':inc.severity==='Sedang'?'🟡':'🟢';
+  let text = `🚨 *LAPORAN KEJADIAN — PATROLI VP*\n`;
+  text += `📍 ${rtSettings.rtname||s.rtLabel}\n`;
+  text += `👮 ${s.satpamName||'Satpam'}\n`;
+  text += `🕐 ${fmtDateTime(inc.ts)}\n`;
+  text += `📋 Jenis: ${inc.type}\n`;
+  text += `${sevEmoji} Tingkat: ${inc.severity}\n`;
+  if(inc.location) {
+    text += `🗺️ Lokasi: ${inc.location.name}`;
+    if(inc.location.lat && inc.location.lng) text += ` (https://maps.google.com/?q=${inc.location.lat},${inc.location.lng})`;
+    text += '\n';
+  }
+  if(inc.desc) text += `📝 ${inc.desc}\n`;
+  text += `\n— Patroli VP v1.0 —`;
+  const wa = (waConf.komWa || '').replace(/\D/g,'');
+  if(wa) {
+    window.open('https://wa.me/'+wa+'?text='+encodeURIComponent(text),'_blank');
+    /* FITUR BARU: Reminder foto setelah WA incident */
+    setTimeout(() => {
+      showToast('📸 Foto kejadian? Kirim langsung via WA!', 'info', TIMING.TOAST_LONG);
+    }, TIMING.SELFIE_REMINDER);
+  }
+  closeModal('incidentModal');
+  showToast('Laporan kejadian terkirim! 📤', 'success');
+  vibrate([100,50,100,50,100]);
+}
+
+/* ============================================================
+   SHIFT HISTORY & REPORTS
+   ============================================================ */
+function renderShiftHistory() {
+  const shifts = getShifts();
+  const container = el('shift-history-list');
+  if(!container) return;
+  if(shifts.length === 0) {
+    container.innerHTML = '<div class="body-text text-center" style="padding:20px">Belum ada riwayat shift</div>';
+    return;
+  }
+  const locs = getLocations();
+  container.innerHTML = shifts.slice(0,20).map(sh => {
+    const dur = fmtDuration(sh.duration||0);
+    const pct = locs.length ? Math.round((sh.checkedLocs||[]).length/locs.length*100) : 0;
+    const color = pct>=80?'var(--green)':pct>=50?'var(--orange)':'var(--red)';
+    const incs = (sh.incidents||[]).length;
+    /* FITUR BARU: Shift dua satpam */
+    const nameLine = sh.satpam2Name ? `${sh.satpamName} + ${sh.satpam2Name}` : sh.satpamName;
+    return `<div class="shift-card" style="margin-bottom:12px">
+      <div class="sh-head">
+        <span class="sh-name">👮 ${nameLine}</span>
+        <span class="sh-badge" style="color:${color};border-color:${color}">${pct}%</span>
+      </div>
+      <div class="sh-meta">📅 ${fmtDate(sh.startTime)} · ${fmtTime(sh.startTime)}–${sh.endTime?fmtTime(sh.endTime):'–'}</div>
+      <div class="sh-meta">⏱ ${dur} · ✅ ${(sh.checkedLocs||[]).length}/${locs.length} titik${incs?` · <span style="color:var(--red)">⚠️ ${incs} kejadian</span>`:''}</div>
+      <div class="progress-track" style="margin:6px 0 0"><div class="progress-fill" style="width:${pct}%;background:${color}"></div></div>
+    </div>`;
+  }).join('');
+}
+
+function renderReportStats() {
+  const shifts = getShifts();
+  const incidents = ls(KEYS.INCIDENTS, []);
+  const el1 = el('rep-total-shift');
+  const el2 = el('rep-total-inc');
+  if(el1) el1.textContent = shifts.length;
+  if(el2) el2.textContent = incidents.length;
+}
+
+function csvField(val) {
+  const str = String(val ?? '');
+  if(str.includes(',') || str.includes('"') || str.includes('\n')) {
+    return '"' + str.replace(/"/g, '""') + '"';
+  }
+  return str;
+}
+function exportCSV() {
+  const shifts = getShifts();
+  const locs = getLocations();
+  let csv = 'ID,Satpam,Tanggal,Mulai,Selesai,Durasi,Titik Discan,Total Titik,Kejadian\n';
+  shifts.forEach(s => {
+    csv += [
+      csvField(s.id), csvField(s.satpamName), csvField(fmtDate(s.startTime)),
+      csvField(fmtTime(s.startTime)), csvField(s.endTime?fmtTime(s.endTime):'-'),
+      csvField(fmtDuration(s.duration||0)), csvField((s.checkedLocs||[]).length),
+      csvField(locs.length), csvField((s.incidents||[]).length)
+    ].join(',') + '\n';
+  });
+  downloadText(csv, 'laporan-patroli.csv', 'text/csv');
+}
+function exportJSON() {
+  const data = { shifts: getShifts(), incidents: ls(KEYS.INCIDENTS,[]), exportedAt: new Date().toISOString() };
+  downloadText(JSON.stringify(data,null,2), 'laporan-patroli.json', 'application/json');
+}
+function downloadText(content, filename, type) {
+  const a = document.createElement('a');
+  a.href = 'data:'+type+';charset=utf-8,'+encodeURIComponent(content);
+  a.download = filename;
+  a.click();
+}
+
+/* ============================================================
+   SENTER
+   ============================================================ */
+async function toggleSenter() {
+  const btn = el('btn-senter');
+  // Jika sedang nyala, matikan
+  if(state.senterTrack) {
+    try { await state.senterTrack.applyConstraints({advanced:[{torch:false}]}); } catch{}
+    try { state.senterTrack.stop(); } catch{}
+    state.senterTrack = null;
+    btn.textContent = '🔦';
+    btn.style.borderColor = '';
+    return;
+  }
+  // Cek ketersediaan API
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    showToast('Senter memerlukan izin kamera', 'error'); return;
+  }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+    const track = stream.getVideoTracks()[0];
+    const caps = track.getCapabilities ? track.getCapabilities() : {};
+    if(!caps.torch) {
+      track.stop();
+      showToast('HP ini tidak mendukung senter via browser', 'warn', 3500); return;
+    }
+    await track.applyConstraints({advanced:[{torch:true}]});
+    state.senterTrack = track;
+    btn.textContent = '💡';
+    btn.style.borderColor = 'var(--gold)';
+  } catch(e) {
+    showToast('Gagal aktifkan senter: ' + (e.message||e), 'error');
+  }
+}
+
+/* ============================================================
+   KOMANDAN SCREEN
+   ============================================================ */
+function initKomandanScreen() {
+  const s = state.session;
+  el('hdr-badge-komandan').textContent = s.rtLabel;
+  renderKomTab('master');
+  /* FIREBASE SYNC */
+  syncFromFirebase();
+  setupRealtimeListeners();
+}
+function goBackFromKomandan() {
+  stopQRScanner();
+  hideAllOnboarding();
+  const prev = state.komandanPrev || 'screenLogin';
+  state.komandanPrev = null;
+  // Restore sesi satpam sebelumnya jika ada
+  if(prev === 'screenSatpam' && state._prevSatpamSession) {
+    state.session = state._prevSatpamSession;
+    lsSet(KEYS.SESSION, state.session);
+  }
+  state._prevSatpamSession = null;
+  showScreen(prev);
+  if(prev === 'screenSatpam') initSatpamScreen();
+}
+function openKomandanFromSatpam() {
+  clearPin('klm', 4);
+  openModal('komandanLoginModal');
+  setTimeout(() => el('klm_0')?.focus(), 300);
+}
+function verifyKomandanFromSatpam() {
+  const pin = readPin('klm', 4);
+  const s = state.session;
+  const adminPin = getAdminPin(s.rw, s.rt);
+  if(pin !== adminPin) { showToast('PIN Admin salah', 'error'); clearPin('klm',4); return; }
+  const prevSession = { ...state.session };
+  const newSession = { role:'komandan', rw:s.rw, rt:s.rt, rtLabel:s.rtLabel, satpamName:'', satpamId:'' };
+  state.session = newSession;
+  lsSet(KEYS.SESSION, newSession);
+  state.komandanPrev = 'screenSatpam';
+  state._prevSatpamSession = prevSession;
+  closeModal('komandanLoginModal');
+  stopQRScanner();
+  showScreen('screenKomandan');
+  initKomandanScreen();
+}
+
+function switchKomTab(tab) {
+  state.currentKomTab = tab;
+  document.querySelectorAll('#kom-tab-scroll .tab-btn').forEach(b => {
+    const onclick = b.getAttribute('onclick') || '';
+    b.classList.toggle('active', onclick.includes("'"+tab+"'"));
+  });
+  renderKomTab(tab);
+  // Push history agar back button kembali ke tab sebelumnya
+  history.pushState({ screen: 'screenKomandan', tab }, '', '');
+}
+
+function goToTabWithFilter(tab, filter) {
+  state.komFilter = filter;
+  switchKomTab(tab);
+  const tabScroll = el('kom-tab-scroll');
+  const activeBtn = tabScroll && tabScroll.querySelector('.tab-btn.active');
+  if(activeBtn) activeBtn.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+}
+
+function renderKomTab(tab) {
+  const content = el('kom-content');
+  const handlers = {
+    master: renderMasterTab,
+    statistik: renderStatistikTab,
+    kejadian: renderKejadianTab,
+    jadwal: renderJadwalTab,
+    perbandingan: renderPerbandinganTab,
+    konfigurasi: renderKonfigurasiTab,
+    integritas: renderIntegritasTab,
+  };
+  (handlers[tab] || (() => { content.innerHTML = '<div class="body-text text-center" style="padding:40px">Tab ini belum tersedia</div>'; }))(content);
+}
+
+/* ============================================================
+   TAB: MASTER
+   ============================================================ */
+function renderMasterTab(content) {
+  const satpams = getSatpams();
+  const locs = getLocations();
+  content.innerHTML = `
+    <div class="title-section" style="margin-bottom:14px">👥 Data Satpam</div>
+    <button class="btn btn-gold sm" onclick="openModal('addSatpamModal')">+ Tambah Satpam</button>
+    <div id="satpam-list-kom">${satpams.length===0?'<div class="body-text text-center" style="padding:16px">Belum ada satpam</div>':satpams.map(s=>`
+      <div class="shift-card" style="display:flex;align-items:center;gap:10px">
+        <div style="flex:1;min-width:0">
+          <div class="sh-name" style="font-size:15px">👤 ${s.name}</div>
+          <div class="sh-meta">${s.wa||'–'}</div>
+        </div>
+        <button class="icon-btn danger" onclick="deleteSatpam('${s.id}')" title="Hapus">🗑️</button>
+      </div>`).join('')}</div>
+    <div class="sep"></div>
+    <div class="title-section" style="margin-bottom:14px">📍 Titik Patroli</div>
+    <button class="btn btn-gold sm" onclick="openAddLocation()">+ Tambah Titik</button>
+    <div id="loc-list-kom">${locs.length===0?'<div class="body-text text-center" style="padding:16px">Belum ada titik patroli</div>':locs.map(loc=>`
+      <div class="shift-card" style="display:flex;align-items:center;gap:10px">
+        <div style="flex:1;min-width:0">
+          <div class="sh-name" style="font-size:15px">📍 ${loc.name}</div>
+          <div class="sh-meta">GPS: ${loc.lat&&loc.lng?`${loc.lat.toFixed(5)}, ${loc.lng.toFixed(5)}`:'–'} · Radius: ${loc.radius||50}m</div>
+        </div>
+        <button class="icon-btn blue" onclick="showQR('${loc.id}')" title="Lihat QR">📱</button>
+        <button class="icon-btn gold" onclick="openEditLocation('${loc.id}')" title="Edit">✏️</button>
+        <button class="icon-btn danger" onclick="deleteLocation('${loc.id}')" title="Hapus">🗑️</button>
+      </div>`).join('')}</div>`;
+  safeCreateIcons();
+}
+
+/* ============================================================
+   TAB: STATISTIK
+   ============================================================ */
+function renderStatistikTab(content) {
+  const shifts = getShifts();
+  const incidents = ls(KEYS.INCIDENTS,[]).filter(i=>i.rw===state.session.rw&&i.rt===state.session.rt);
+  const locs = getLocations();
+  const now = Date.now();
+  const today = new Date(); today.setHours(0,0,0,0);
+  const thisWeek = new Date(); thisWeek.setDate(thisWeek.getDate()-7);
+  const thisMonth = new Date(); thisMonth.setDate(1); thisMonth.setHours(0,0,0,0);
+  const shiftToday = shifts.filter(s=>s.startTime>=today.getTime());
+  const shiftWeek  = shifts.filter(s=>s.startTime>=thisWeek.getTime());
+  const shiftMonth = shifts.filter(s=>s.startTime>=thisMonth.getTime());
+  const totalMinutes = shifts.reduce((a,s)=>a+(s.duration||0)/60000,0);
+  const avgPct = shifts.length ? Math.round(shifts.reduce((a,s)=>
+    a+(locs.length?((s.checkedLocs||[]).length/locs.length*100):0),0)/shifts.length) : 0;
+  const incBerat = incidents.filter(i=>i.severity==='Berat');
+  const incSedang = incidents.filter(i=>i.severity==='Sedang');
+
+  const tip = `<div style="font-size:11px;color:var(--muted);text-align:center;margin-bottom:14px;opacity:.7">💡 Ketuk kartu untuk lihat detail</div>`;
+
+  content.innerHTML = `
+    <div class="title-section" style="margin-bottom:8px">📊 Statistik Patroli</div>
+    ${tip}
+
+    <div style="font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Shift</div>
+    <div class="stat-grid" style="margin-bottom:4px">
+      <div class="stat-box stat-clickable" onclick="goToTabWithFilter('jadwal','today')" title="Lihat shift hari ini">
+        <div class="stat-val">${shiftToday.length}</div>
+        <div class="stat-lbl">Hari Ini</div>
+        <div class="stat-arrow">→</div>
+      </div>
+      <div class="stat-box stat-clickable" onclick="goToTabWithFilter('jadwal','week')" title="Lihat shift 7 hari terakhir">
+        <div class="stat-val">${shiftWeek.length}</div>
+        <div class="stat-lbl">7 Hari Terakhir</div>
+        <div class="stat-arrow">→</div>
+      </div>
+      <div class="stat-box stat-clickable" onclick="goToTabWithFilter('jadwal','month')" title="Lihat shift bulan ini">
+        <div class="stat-val">${shiftMonth.length}</div>
+        <div class="stat-lbl">Bulan Ini</div>
+        <div class="stat-arrow">→</div>
+      </div>
+      <div class="stat-box stat-clickable" onclick="goToTabWithFilter('jadwal','all')" title="Lihat semua shift">
+        <div class="stat-val">${shifts.length}</div>
+        <div class="stat-lbl">Total Shift</div>
+        <div class="stat-arrow">→</div>
+      </div>
+    </div>
+
+    <div class="stat-grid" style="margin-bottom:14px">
+      <div class="stat-box">
+        <div class="stat-val">${Math.round(totalMinutes/60)}<span style="font-size:14px">j</span></div>
+        <div class="stat-lbl">Total Jam</div>
+      </div>
+      <div class="stat-box stat-clickable" onclick="goToTabWithFilter('perbandingan','scan')" title="Lihat perbandingan scan">
+        <div class="stat-val">${avgPct}<span style="font-size:14px">%</span></div>
+        <div class="stat-lbl">Rata-rata Scan</div>
+        <div class="stat-arrow">→</div>
+      </div>
+    </div>
+
+    <div style="font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Kejadian</div>
+    <div class="stat-grid" style="margin-bottom:14px">
+      <div class="stat-box stat-clickable" onclick="goToTabWithFilter('kejadian','all')" title="Lihat semua kejadian">
+        <div class="stat-val" style="color:var(--red)">${incidents.length}</div>
+        <div class="stat-lbl">Total Kejadian</div>
+        <div class="stat-arrow" style="color:var(--red)">→</div>
+      </div>
+      <div class="stat-box stat-clickable" onclick="goToTabWithFilter('kejadian','berat')" title="Lihat kejadian berat">
+        <div class="stat-val" style="color:var(--red)">${incBerat.length}</div>
+        <div class="stat-lbl">🔴 Berat</div>
+        <div class="stat-arrow" style="color:var(--red)">→</div>
+      </div>
+      <div class="stat-box stat-clickable" onclick="goToTabWithFilter('kejadian','sedang')" title="Lihat kejadian sedang">
+        <div class="stat-val" style="color:var(--orange)">${incSedang.length}</div>
+        <div class="stat-lbl">🟡 Sedang</div>
+        <div class="stat-arrow" style="color:var(--orange)">→</div>
+      </div>
+      <div class="stat-box stat-clickable" onclick="goToTabWithFilter('master','lokasi')" title="Lihat titik patroli">
+        <div class="stat-val">${locs.length}</div>
+        <div class="stat-lbl">Titik Patroli</div>
+        <div class="stat-arrow">→</div>
+      </div>
+    </div>
+
+    <div style="font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Per Satpam</div>
+    ${renderSatpamStats()}`;
+}
+
+function renderSatpamStats() {
+  const shifts = getShifts();
+  if(!shifts.length) return '<div class="body-text text-center" style="padding:16px">Belum ada data</div>';
+  const locs = getLocations();
+  const byName = {};
+  shifts.forEach(s => {
+    if(!byName[s.satpamName]) byName[s.satpamName]={name:s.satpamName,count:0,totalPct:0,incs:0};
+    byName[s.satpamName].count++;
+    byName[s.satpamName].totalPct += locs.length?((s.checkedLocs||[]).length/locs.length*100):0;
+    byName[s.satpamName].incs += (s.incidents||[]).length;
+  });
+  return Object.values(byName).sort((a,b)=>b.count-a.count).map(d => {
+    const avg = Math.round(d.totalPct/d.count);
+    const color = avg>=80?'var(--green)':avg>=50?'var(--orange)':'var(--red)';
+    return `
+    <div class="shift-card stat-clickable" onclick="goToTabWithFilter('jadwal','satpam:${d.name.replace(/'/g,"\\'")}')" style="margin-bottom:10px">
+      <div class="sh-head">
+        <span class="sh-name">👤 ${d.name}</span>
+        <span class="sh-badge">${d.count} shift</span>
+        <span style="font-size:12px;color:var(--muted);margin-left:auto;padding-left:8px">→</span>
+      </div>
+      <div class="sh-meta" style="margin-bottom:6px">Kejadian: ${d.incs} · Rata-rata scan: <strong style="color:${color}">${avg}%</strong></div>
+      <div class="progress-track"><div class="progress-fill" style="width:${Math.min(avg,100)}%;background:${color}"></div></div>
+    </div>`;
+  }).join('');
+}
+
+/* ============================================================
+   TAB: KEJADIAN
+   ============================================================ */
+function renderKejadianTab(content) {
+  const filter = state.komFilter;
+  state.komFilter = null; // reset setelah dipakai
+  let incidents = ls(KEYS.INCIDENTS,[]).filter(i=>i.rw===state.session.rw&&i.rt===state.session.rt);
+
+  let filterLabel = '';
+  if(filter === 'berat') {
+    incidents = incidents.filter(i=>i.severity==='Berat');
+    filterLabel = `<div class="filter-chip">🔴 Filter: Berat <span onclick="switchKomTab('kejadian')" style="cursor:pointer;margin-left:6px;opacity:.7">✕</span></div>`;
+  } else if(filter === 'sedang') {
+    incidents = incidents.filter(i=>i.severity==='Sedang');
+    filterLabel = `<div class="filter-chip">🟡 Filter: Sedang <span onclick="switchKomTab('kejadian')" style="cursor:pointer;margin-left:6px;opacity:.7">✕</span></div>`;
+  }
+
+  content.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <div class="title-section" style="margin-bottom:0">⚠️ Kejadian (${incidents.length})</div>
+      <button class="btn btn-muted sm mb-0" style="margin-left:auto" onclick="goToTabWithFilter('statistik','')">← Statistik</button>
+    </div>
+    ${filterLabel}
+    ${incidents.length===0?'<div class="body-text text-center" style="padding:40px">Tidak ada data</div>':
+    incidents.slice(0,50).map(inc=>{
+      const sevColor=inc.severity==='Berat'?'var(--red)':inc.severity==='Sedang'?'var(--orange)':'var(--green)';
+      const locHtml = inc.location
+        ? `<div style="font-size:12px;margin-top:4px;color:var(--blue)">📍 ${inc.location.name}${inc.location.lat&&inc.location.lng?` — <a href="https://maps.google.com/?q=${inc.location.lat},${inc.location.lng}" target="_blank" style="color:var(--blue)">Maps 🗺️</a>`:''}</div>`
+        : '';
+      return `<div class="shift-card">
+        <div class="sh-head">
+          <span class="sh-name" style="color:${sevColor}">${inc.type}</span>
+          <span class="sh-badge" style="background:${sevColor}15;color:${sevColor};border-color:${sevColor}">${inc.severity}</span>
+        </div>
+        <div class="sh-meta">👮 ${inc.satpamName} · 🕐 ${fmtDateTime(inc.ts)}</div>
+        ${locHtml}
+        ${inc.desc?`<div style="font-size:13px;margin-top:6px;color:var(--text)">${inc.desc}</div>`:''}
+      </div>`;
+    }).join('')}`;
+}
+
+/* FITUR BARU: WA ke dua target */
+function openWaChoiceModal(shift) {
+  state._lastEndedShift = shift;
+  const s = state.session;
+  const key = s.rw+'_'+s.rt;
+  const waConf = ls(KEYS.WA_CONFIG,{})[key] || {};
+  const hasKom = !!(waConf.komWa||'').trim();
+  const hasGrp = !!(waConf.grupWa||'').trim();
+  if(!hasKom && !hasGrp) return; // tidak ada nomor WA, skip modal
+  const komBtn = el('wa-choice-komandan');
+  const grpBtn = el('wa-choice-grup');
+  if(komBtn) komBtn.style.display = hasKom ? '' : 'none';
+  if(grpBtn) grpBtn.style.display = hasGrp ? '' : 'none';
+  openModal('waChoiceModal');
+}
+function waChoiceKomandan() {
+  closeModal('waChoiceModal');
+  if(state._lastEndedShift) sendShiftWA(state._lastEndedShift);
+}
+function waChoiceGrup() {
+  closeModal('waChoiceModal');
+  if(state._lastEndedShift) sendShiftWAGrup(state._lastEndedShift);
+}
+
+/* FITUR BARU: Storage indicator */
+/* ============================================================
+   STORAGE UTILS
+   ============================================================ */
+function calcStorageUsage() {
+  let total = 0;
+  for(let key in localStorage) {
+    if(localStorage.hasOwnProperty(key)) {
+      total += (localStorage[key].length + key.length) * 2;
+    }
+  }
+  return total; // bytes
+}
+/* ============================================================
+   STORAGE UTILS
+   ============================================================ */
+function renderStorageIndicator() {
+  const used = calcStorageUsage();
+  const limit = TIMING.STORAGE_LIMIT;
+  const ratio = used / limit;
+  const pct = Math.min(100, Math.round(ratio * 100));
+  const usedMB = (used / 1048576).toFixed(1);
+  const color = ratio < TIMING.STORAGE_WARN ? 'var(--green)' : ratio < TIMING.STORAGE_DANGER ? 'var(--orange)' : 'var(--red)';
+  const filled = Math.round(pct / 100 * 12);
+  const bar = '█'.repeat(filled) + '░'.repeat(12 - filled);
+  return `<div class="card" style="margin-bottom:14px">
+    <div class="card-title">💾 Penyimpanan HP</div>
+    <div style="font-family:monospace;font-size:15px;color:${color};letter-spacing:1px;margin-bottom:6px">${bar}</div>
+    <div style="font-size:13px;color:var(--muted)">${usedMB} MB / 5 MB (<span style="color:${color}">${pct}%</span>)</div>
+    ${ratio >= TIMING.STORAGE_WARN ? '<div class="card-info" style="margin-top:8px;border-color:rgba(255,140,0,.3);color:var(--orange);background:rgba(255,140,0,.08)">⚠️ Penyimpanan hampir penuh. Pertimbangkan export dan hapus data lama.</div>' : ''}
+  </div>`;
+}
+
+/* FITUR BARU: Sync manual */
+async function manualSync() {
+  if (!state.fbDb) {
+    showToast('⚙️ Setup Firebase dulu di menu Konfigurasi', 'warn', 3000);
+    return;
+  }
+  updateSyncStatus('syncing');
+  await syncFromFirebase();
+  await _pushLocalDataToFirebase();
+  updateSyncStatus('synced');
+  showToast('☁️ Sync selesai', 'success');
+}
+function renderSyncStatus() {
+  const fbConf = ls(KEYS.FB_CONFIG, null);
+  const hasDb = !!state.fbDb;
+  const icon = hasDb ? '☁️' : '📵';
+  const label = hasDb ? 'Firebase terhubung' : 'Firebase belum aktif';
+  const btnLabel = hasDb ? '☁️ Sync Sekarang' : '⚙️ Setup Firebase';
+  const btnOnClick = hasDb ? 'manualSync()' : "openModal('fbConfigModal')";
+  return `<div class="card" style="margin-bottom:14px;display:flex;align-items:center;gap:12px">
+    <div id="sync-status-icon" style="font-size:28px">${icon}</div>
+    <div style="flex:1">
+      <div style="font-size:13px;font-weight:800;color:var(--text)">Status Sync</div>
+      <div id="sync-status-label" style="font-size:12px;color:var(--muted)">${label}</div>
+    </div>
+    <button class="btn btn-muted sm mb-0" onclick="${btnOnClick}" style="min-height:40px;font-size:13px;padding:0 12px;width:auto">${btnLabel}</button>
+  </div>`;
+}
+
+/* FITUR BARU: Penjadwalan Shift */
+/* ============================================================
+   TAB: JADWAL
+   ============================================================ */
+function renderJadwalTab(content) {
+  const filter = state.komFilter;
+  state.komFilter = null;
+  const schedules = ls(KEYS.SCHEDULES, []).filter(sc => {
+    const s = state.session;
+    return sc.rw === s.rw && sc.rt === s.rt;
+  });
+  let shifts = getShifts();
+  const locs = getLocations();
+  let filterLabel = '';
+
+  // Apply filter
+  const today = new Date(); today.setHours(0,0,0,0);
+  const thisWeek = new Date(); thisWeek.setDate(thisWeek.getDate()-7);
+  const thisMonth = new Date(); thisMonth.setDate(1); thisMonth.setHours(0,0,0,0);
+  if(filter === 'today') {
+    shifts = shifts.filter(s=>s.startTime>=today.getTime());
+    filterLabel = `<div class="filter-chip">📅 Filter: Hari Ini <span onclick="switchKomTab('jadwal')" style="cursor:pointer;margin-left:6px;opacity:.7">✕</span></div>`;
+  } else if(filter === 'week') {
+    shifts = shifts.filter(s=>s.startTime>=thisWeek.getTime());
+    filterLabel = `<div class="filter-chip">📅 Filter: 7 Hari Terakhir <span onclick="switchKomTab('jadwal')" style="cursor:pointer;margin-left:6px;opacity:.7">✕</span></div>`;
+  } else if(filter === 'month') {
+    shifts = shifts.filter(s=>s.startTime>=thisMonth.getTime());
+    filterLabel = `<div class="filter-chip">📅 Filter: Bulan Ini <span onclick="switchKomTab('jadwal')" style="cursor:pointer;margin-left:6px;opacity:.7">✕</span></div>`;
+  } else if(filter && filter.startsWith('satpam:')) {
+    const nama = filter.slice(7);
+    shifts = shifts.filter(s=>s.satpamName===nama);
+    filterLabel = `<div class="filter-chip">👤 Filter: ${nama} <span onclick="switchKomTab('jadwal')" style="cursor:pointer;margin-left:6px;opacity:.7">✕</span></div>`;
+  }
+
+  content.innerHTML = `
+    <div class="title-section" style="margin-bottom:14px">📅 Penjadwalan Shift</div>
+    ${_renderJadwalForm()}
+    <div class="title-section" style="margin-bottom:8px">📋 Daftar Jadwal (${schedules.length})</div>
+    ${_renderJadwalList(schedules, shifts)}
+    <div class="sep" style="margin:16px 0"></div>
+    ${_renderJadwalComparison(schedules, shifts)}
+    <div class="sep" style="margin:16px 0"></div>
+    <div class="title-section" style="margin-bottom:8px">📅 Riwayat Shift (${shifts.length})</div>
+    ${filterLabel}
+    ${shifts.length===0?'<div class="body-text empty-state">Tidak ada data</div>':
+    shifts.slice(0,30).map(s=>{
+      const pct = locs.length?Math.round((s.checkedLocs||[]).length/locs.length*100):0;
+      const color = pct>=80?'var(--green)':pct>=50?'var(--orange)':'var(--red)';
+      const dur = s.duration ? fmtDuration(s.duration) : '–';
+      const incs = (s.incidents||[]).length;
+      const nameLine = s.satpam2Name ? `${s.satpamName} + ${s.satpam2Name}` : s.satpamName;
+      return `<div class="shift-card">
+        <div class="sh-head">
+          <span class="sh-name">👤 ${nameLine}</span>
+          <span class="sh-badge" style="color:${color};border-color:${color}">${pct}%</span>
+        </div>
+        <div class="sh-meta">📅 ${fmtDate(s.startTime)} · ${fmtTime(s.startTime)}–${s.endTime?fmtTime(s.endTime):'aktif'} · ⏱ ${dur}</div>
+        ${incs?`<div class="sh-meta" style="color:var(--red)">⚠️ ${incs} kejadian</div>`:''}
+        <div class="progress-track" style="margin:8px 0 0">
+          <div class="progress-fill" style="width:${pct}%;background:${color}"></div>
+        </div>
+      </div>`;
+    }).join('')}`;
+}
+
+function _renderJadwalForm() {
+  const satpams = getSatpams();
+  const satpamOptions = satpams.map(s=>`<option value="${s.name}">${s.name}</option>`).join('');
+  const now = new Date();
+  const defaultDate = now.toISOString().slice(0,10);
+  const defaultTime = pad(now.getHours())+':'+pad(now.getMinutes());
+  return `<div class="card gold-border" style="margin-bottom:14px">
+      <div class="card-title">➕ Tambah Jadwal</div>
+      <div class="field-label">Satpam</div>
+      <select class="field-inp" id="sched-satpam" style="background:rgba(255,255,255,.07)">
+        <option value="">-- Pilih Satpam --</option>
+        ${satpamOptions}
+      </select>
+      <div class="field-label">Tanggal</div>
+      <input class="field-inp" id="sched-date" type="date" value="${defaultDate}"/>
+      <div class="field-label">Jam Mulai</div>
+      <input class="field-inp" id="sched-time" type="time" value="${defaultTime}"/>
+      <div class="field-label">Durasi (menit)</div>
+      <input class="field-inp" id="sched-dur" type="number" value="480" min="30" max="1440"/>
+      <div class="field-label">Wilayah (opsional)</div>
+      <input class="field-inp" id="sched-wilayah" type="text" placeholder="Contoh: Blok A, Pos Utama"/>
+      <button class="btn btn-gold sm" onclick="saveSchedule()">💾 Simpan Jadwal</button>
+    </div>`;
+}
+
+function _renderJadwalList(schedules, shifts) {
+  if(schedules.length === 0) return '<div class="body-text text-center" style="padding:16px">Belum ada jadwal</div>';
+  const nowTs = Date.now();
+  return schedules.slice(0,30).map(sc=>{
+    const schedTs = new Date(sc.date+'T'+sc.time).getTime();
+    const schedEnd = schedTs + sc.durMenit * 60000;
+    let badge = '';
+    const matchShift = shifts.find(sh =>
+      sh.satpamName && sh.satpamName.toLowerCase().includes(sc.satpam.toLowerCase()) &&
+      Math.abs(sh.startTime - schedTs) <= TIMING.SCHEDULE_TOLERANCE
+    );
+    if(matchShift) {
+      const diff = Math.round((matchShift.startTime - schedTs) / 60000);
+      if(Math.abs(diff) * 60000 <= TIMING.SCHEDULE_ONTIME) {
+        badge = `<span class="sh-badge" style="color:var(--green);border-color:var(--green)">✓ Tepat Waktu</span>`;
+      } else {
+        badge = `<span class="sh-badge" style="color:var(--orange);border-color:var(--orange)">⚠️ Terlambat ${Math.abs(diff)}m</span>`;
+      }
+    } else if(schedEnd < nowTs) {
+      badge = `<span class="sh-badge" style="color:var(--red);border-color:var(--red)">❌ Tidak Hadir</span>`;
+    } else {
+      badge = `<span class="sh-badge" style="color:var(--blue);border-color:var(--blue)">🗓️ Terjadwal</span>`;
+    }
+    return `<div class="shift-card mt-8">
+      <div class="sh-head">
+        <span class="sh-name">👤 ${sc.satpam}</span>
+        ${badge}
+      </div>
+      <div class="sh-meta">📅 ${sc.date} · ${sc.time} · ⏱ ${sc.durMenit}m${sc.wilayah?' · 📍 '+sc.wilayah:''}</div>
+      <button class="btn btn-red sm" style="margin-top:8px;min-height:36px;font-size:13px" onclick="deleteSchedule('${sc.id}')">🗑️ Hapus</button>
+    </div>`;
+  }).join('');
+}
+
+function _renderJadwalComparison(schedules, shifts) {
+  if(schedules.length === 0) return '<div class="body-text text-center" style="padding:12px">Belum ada jadwal untuk perbandingan</div>';
+  const nowTs = Date.now();
+  const rows = schedules.slice(0,15).map(sc=>{
+    const schedTs = new Date(sc.date+'T'+sc.time).getTime();
+    const schedEnd = schedTs + sc.durMenit * 60000;
+    const matchShift = shifts.find(sh =>
+      sh.satpamName && sh.satpamName.toLowerCase().includes(sc.satpam.toLowerCase()) &&
+      Math.abs(sh.startTime - schedTs) <= TIMING.SCHEDULE_TOLERANCE
+    );
+    const aktual = matchShift ? fmtTime(matchShift.startTime) : '–';
+    let status = '';
+    if(matchShift) {
+      const diff = Math.round((matchShift.startTime - schedTs) / 60000);
+      status = Math.abs(diff) * 60000 <= TIMING.SCHEDULE_ONTIME
+        ? `<span style="color:var(--green)">✓ Tepat</span>`
+        : `<span style="color:var(--orange)">+${Math.abs(diff)}m</span>`;
+    } else if(schedEnd < nowTs) {
+      status = `<span style="color:var(--red)">❌</span>`;
+    } else {
+      status = `<span style="color:var(--blue)">🗓️</span>`;
+    }
+    return `<tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:8px 6px">${sc.satpam}</td>
+      <td style="padding:8px 6px">${sc.time}</td>
+      <td style="padding:8px 6px">${aktual}</td>
+      <td style="padding:8px 6px">${status}</td>
+    </tr>`;
+  }).join('');
+  return `<div class="title-section" style="margin-bottom:8px">⚖️ Jadwal vs Aktual</div>
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead><tr style="color:var(--muted);text-align:left">
+        <th style="padding:8px 6px;border-bottom:1px solid var(--border)">Satpam</th>
+        <th style="padding:8px 6px;border-bottom:1px solid var(--border)">Jadwal</th>
+        <th style="padding:8px 6px;border-bottom:1px solid var(--border)">Aktual</th>
+        <th style="padding:8px 6px;border-bottom:1px solid var(--border)">Status</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+}
+
+function saveSchedule() {
+  const satpam = el('sched-satpam').value.trim();
+  const date = el('sched-date').value.trim();
+  const time = el('sched-time').value.trim();
+  const durMenit = parseInt(el('sched-dur').value) || 480;
+  const wilayah = el('sched-wilayah').value.trim();
+  if(!satpam) { showToast('Pilih nama satpam dulu', 'error'); return; }
+  if(!date || !time) { showToast('Isi tanggal dan jam dulu', 'error'); return; }
+  const s = state.session;
+  const allSched = ls(KEYS.SCHEDULES, []);
+  const sched = { id: uid(), rw: s.rw, rt: s.rt, satpam, date, time, durMenit, wilayah };
+  allSched.unshift(sched);
+  if(allSched.length > 30) allSched.length = 30;
+  lsSet(KEYS.SCHEDULES, allSched);
+  /* FIREBASE SYNC */
+  fbSet(`rw/${s.rw}/rt/${s.rt}/schedules/${sched.id}`, sched);
+  showToast('Jadwal tersimpan ✅', 'success');
+  renderKomTab('jadwal');
+}
+function deleteSchedule(id) {
+  if(!confirm('Hapus jadwal ini?')) return;
+  const allSched = ls(KEYS.SCHEDULES, []).filter(s=>s.id!==id);
+  lsSet(KEYS.SCHEDULES, allSched);
+  renderKomTab('jadwal');
+  showToast('Jadwal dihapus', '');
+}
+
+/* ============================================================
+   TAB: PERBANDINGAN
+   ============================================================ */
+function renderPerbandinganTab(content) {
+  const filter = state.komFilter;
+  state.komFilter = null;
+  const shifts = getShifts();
+  const locs = getLocations();
+  const byName = {};
+  /* FITUR BARU: Shift berdua menambah count +1 untuk keduanya */
+  shifts.forEach(s => {
+    const names = [s.satpamName];
+    if(s.satpam2Name) names.push(s.satpam2Name);
+    names.forEach(nm => {
+      if(!byName[nm]) byName[nm]={name:nm,count:0,totalPct:0,totalDur:0,incs:0};
+      byName[nm].count++;
+      byName[nm].totalPct += locs.length?((s.checkedLocs||[]).length/locs.length*100):0;
+      byName[nm].totalDur += (s.duration||0);
+      byName[nm].incs += (s.incidents||[]).length;
+    });
+  });
+  const sorted = Object.values(byName).sort((a,b)=>(b.totalPct/b.count)-(a.totalPct/a.count));
+  const fromStat = filter === 'scan';
+  content.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <div class="title-section" style="margin-bottom:0">⚖️ Perbandingan Satpam</div>
+      ${fromStat?`<button class="btn btn-muted sm mb-0" style="margin-left:auto" onclick="goToTabWithFilter('statistik','')">← Statistik</button>`:''}
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px">💡 Ketuk kartu untuk lihat shift satpam · Shift bersama dihitung untuk keduanya</div>
+    ${sorted.length===0?'<div class="body-text text-center" style="padding:40px">Belum ada data</div>':
+    sorted.map((d,i)=>{
+      const avg=Math.round(d.totalPct/d.count);
+      const color=avg>=80?'var(--green)':avg>=50?'var(--orange)':'var(--red)';
+      const medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':`#${i+1}`;
+      return `<div class="shift-card stat-clickable" onclick="goToTabWithFilter('jadwal','satpam:${d.name.replace(/'/g,"\\'")}')" style="margin-bottom:10px">
+        <div class="sh-head">
+          <span style="font-size:18px;font-weight:900;color:var(--gold);min-width:28px">${medal}</span>
+          <span class="sh-name">${d.name}</span>
+          <span class="sh-badge" style="color:${color};border-color:${color}">${avg}%</span>
+          <span style="font-size:12px;color:var(--muted);margin-left:auto;padding-left:6px">→</span>
+        </div>
+        <div class="sh-meta">${d.count} shift · ${Math.round(d.totalDur/3600000)}j total · ⚠️ ${d.incs} kejadian</div>
+        <div class="progress-track"><div class="progress-fill" style="width:${Math.min(avg,100)}%;background:${color}"></div></div>
+      </div>`;
+    }).join('')}`;
+}
+
+/* ============================================================
+   TAB: KONFIGURASI
+   ============================================================ */
+function renderKonfigurasiTab(content) {
+  const s = state.session;
+  const key = s.rw+'_'+s.rt;
+  const waConf = ls(KEYS.WA_CONFIG,{})[key] || {};
+  const fbConf = ls(KEYS.FB_CONFIG, null);
+  content.innerHTML = `
+    <div class="title-section" style="margin-bottom:14px">⚙️ Konfigurasi</div>
+    ${_renderWAConfigCard(waConf)}
+    ${_renderFirebaseCard(fbConf)}
+    ${_renderPINCard()}
+    ${_renderDangerZoneCard()}
+    ${_renderBackupCard()}`;
+  buildModalPins('cfg-admin-pin', 4, 'cfga');
+  buildModalPins('cfg-satpam-pin', 6, 'cfgs');
+}
+
+function _renderWAConfigCard(waConf) {
+  return `<div class="card">
+      <div class="card-title">📱 WhatsApp</div>
+      <div class="field-label">Nomor WA Komandan</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Laporan teknis lengkap (untuk Komandan)</div>
+      <input class="field-inp" id="cfg-komwa" type="tel" value="${waConf.komWa||''}" placeholder="628123456789"/>
+      <div class="field-label">Nomor WA Grup RT</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Ringkasan singkat (untuk grup warga RT)</div>
+      <input class="field-inp" id="cfg-grpwa" type="tel" value="${waConf.grupWa||''}" placeholder="628123456789"/>
+      <div class="switch-row">
+        <div><div class="switch-lbl">Kirim Otomatis</div><div class="switch-desc">Langsung buka WA saat shift selesai</div></div>
+        <button class="toggle ${waConf.autoSend?'on':''}" id="tog-auto" onclick="toggleAutoSend()"></button>
+      </div>
+      <button class="btn btn-gold sm" onclick="saveWaConfig()">💾 Simpan WA Config</button>
+    </div>`;
+}
+
+function _renderFirebaseCard(fbConf) {
+  return `<div class="card">
+      <div class="card-title">🔥 Firebase</div>
+      <div class="body-text" style="margin-bottom:12px">${fbConf?`✅ Terhubung: ${fbConf.projectId}`:'❌ Belum terhubung'}</div>
+      <button class="btn btn-muted sm" onclick="openModal('fbConfigModal')">⚙️ Konfigurasi Firebase</button>
+    </div>`;
+}
+
+function _renderPINCard() {
+  return `<div class="card">
+      <div class="card-title">🔑 PIN</div>
+      <div class="body-text" style="margin-bottom:12px">Ubah PIN Admin dan PIN Satpam untuk RT ini.</div>
+      <div class="field-label">PIN Admin Baru (4 digit)</div>
+      <div class="pin-row" id="cfg-admin-pin"></div>
+      <div class="field-label mt-12">PIN Satpam Baru (6 digit)</div>
+      <div class="pin-row" id="cfg-satpam-pin"></div>
+      <button class="btn btn-purple sm mt-12" onclick="savePinConfig()">🔑 Simpan PIN</button>
+    </div>`;
+}
+
+function _renderDangerZoneCard() {
+  return `<div class="card red-border">
+      <div class="card-title" style="color:var(--red)">⚠️ Zona Bahaya</div>
+      <button class="btn btn-red" onclick="openModal('resetModal')">🗑️ Reset Semua Data</button>
+    </div>`;
+}
+
+function _renderBackupCard() {
+  return `<div class="card">
+      <div class="card-title">💾 Export / Import Data</div>
+      <div class="body-text" style="margin-bottom:14px">Backup semua konfigurasi RT (satpam, titik patroli, pengaturan WA) ke file JSON, atau restore dari backup sebelumnya.</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-green sm mb-0" style="flex:1" onclick="exportConfigJSON()">⬇️ Export JSON</button>
+        <button class="btn btn-blue sm mb-0" style="flex:1" onclick="el('import-config-file').click()">⬆️ Import JSON</button>
+      </div>
+      <input type="file" id="import-config-file" accept=".json" style="display:none" onchange="importConfigJSON(event)"/>
+      <div id="import-status" style="display:none;margin-top:10px;font-size:13px;padding:10px;border-radius:10px"></div>
+    </div>`;
+}
+function toggleAutoSend() {
+  const tog = el('tog-auto');
+  tog.classList.toggle('on');
+}
+function saveWaConfig() {
+  const s = state.session;
+  const key = s.rw+'_'+s.rt;
+  const waConf = ls(KEYS.WA_CONFIG,{});
+  waConf[key] = {
+    komWa: el('cfg-komwa').value.trim(),
+    grupWa: el('cfg-grpwa').value.trim(),
+    autoSend: el('tog-auto').classList.contains('on')
+  };
+  lsSet(KEYS.WA_CONFIG, waConf);
+  /* FIREBASE SYNC */
+  const waConfSynced = ls(KEYS.WA_CONFIG,{})[s.rw+'_'+s.rt] || {};
+  fbSet(`rw/${s.rw}/rt/${s.rt}/config/info`, { grupWa: waConfSynced.grupWa, komWa: waConfSynced.komWa });
+  showToast('Config WA tersimpan ✅', 'success');
+}
+function savePinConfig() {
+  const newAdmin = readPin('cfga', 4);
+  const newSatpam = readPin('cfgs', 6);
+  if(newAdmin.length === 0 && newSatpam.length === 0) { showToast('Isi minimal salah satu PIN lengkap', 'error'); return; }
+  if(newAdmin.length > 0 && newAdmin.length < 4) { showToast('PIN Admin harus 4 digit', 'error'); return; }
+  if(newSatpam.length > 0 && newSatpam.length < 6) { showToast('PIN Satpam harus 6 digit', 'error'); return; }
+  const s = state.session;
+  const key = s.rw+'_'+s.rt;
+  const pins = ls(KEYS.LOCAL_PINS, {});
+  if(!pins[key]) pins[key] = {};
+  if(newAdmin.length===4) pins[key].adminPin = newAdmin;
+  if(newSatpam.length===6) pins[key].satpamPin = newSatpam;
+  lsSet(KEYS.LOCAL_PINS, pins);
+  showToast('PIN berhasil diubah 🔑', 'success');
+  clearPin('cfga',4); clearPin('cfgs',6);
+}
+
+/* ============================================================
+   TAB: INTEGRITAS
+   ============================================================ */
+function renderIntegritasTab(content) {
+  const vios = ls(KEYS.VIOLATIONS, []);
+  content.innerHTML = `
+    <div class="title-section" style="margin-bottom:14px">🔍 Log Integritas (${vios.length})</div>
+    ${vios.length===0?'<div class="body-text text-center" style="padding:40px">✅ Tidak ada pelanggaran terdeteksi</div>':
+    vios.slice(0,30).map(v=>`
+      <div class="vio-item">
+        <div class="vio-head">
+          <span class="vio-type">⚠️ ${v.type==='cross_territory'?'QR Lintas Wilayah':'GPS di Luar Radius'}</span>
+        </div>
+        <div class="vio-meta">🕐 ${fmtDateTime(v.ts)}</div>
+        <div class="vio-meta">📍 ${v.payload?.name||'–'} (RW${v.payload?.rw}/RT${v.payload?.rt})</div>
+        <div class="vio-meta">📝 ${v.note}</div>
+      </div>`).join('')}
+    ${vios.length>0?`<button class="btn btn-red sm" onclick="clearViolations()">🗑️ Hapus Log</button>`:''}`;
+}
+function clearViolations() {
+  lsSet(KEYS.VIOLATIONS, []);
+  renderKomTab('integritas');
+  showToast('Log pelanggaran dihapus', 'success');
+}
+
+/* ============================================================
+   DATA MANAGEMENT
+   ============================================================ */
+function getKey() { return state.session ? state.session.rw+'_'+state.session.rt : ''; }
+function getSatpams() { const all = ls(KEYS.SATPAM_LIST,{}); return all[getKey()]||[]; }
+function saveSatpams(list) {
+  const all = ls(KEYS.SATPAM_LIST,{}); all[getKey()]=list; lsSet(KEYS.SATPAM_LIST,all);
+  /* FIREBASE SYNC */
+  const s = state.session;
+  fbSet(`rw/${s.rw}/rt/${s.rt}/config/satpams`, { list: getSatpams(), updatedAt: Date.now() });
+}
+function getLocations() { const all = ls(KEYS.LOCATIONS,{}); return all[getKey()]||[]; }
+function saveLocations(list) {
+  const all = ls(KEYS.LOCATIONS,{}); all[getKey()]=list; lsSet(KEYS.LOCATIONS,all);
+  /* FIREBASE SYNC */
+  const s = state.session;
+  fbSet(`rw/${s.rw}/rt/${s.rt}/config/locations`, { list: getLocations(), updatedAt: Date.now() });
+}
+function getShifts() { const all = ls(KEYS.SHIFTS,{}); return all[getKey()]||[]; }
+
+function saveSatpam() {
+  const name = el('new-satpam-name').value.trim();
+  const wa = el('new-satpam-wa').value.trim();
+  if(!name) { showToast('Isi nama satpam dulu', 'error'); return; }
+  const list = getSatpams();
+  list.push({ id: uid(), name, wa });
+  saveSatpams(list);
+  closeModal('addSatpamModal');
+  el('new-satpam-name').value = '';
+  el('new-satpam-wa').value = '';
+  showToast('Satpam ditambahkan ✅', 'success');
+  renderKomTab('master');
+}
+function deleteSatpam(id) {
+  if(!confirm('Hapus satpam ini?')) return;
+  const list = getSatpams().filter(s=>s.id!==id);
+  saveSatpams(list);
+  renderKomTab('master');
+  showToast('Satpam dihapus', '');
+}
+
+function getGPSLocation() {
+  if(!navigator.geolocation) { showToast('GPS tidak tersedia', 'error'); return; }
+  navigator.geolocation.getCurrentPosition(pos => {
+    el('new-loc-lat').value = pos.coords.latitude.toFixed(6);
+    el('new-loc-lng').value = pos.coords.longitude.toFixed(6);
+    showToast('Koordinat GPS berhasil diambil 📡', 'success');
+  }, () => showToast('Gagal mendapatkan GPS', 'error'));
+}
+
+function openGmapsInput() {
+  const wrap = el('gmaps-input-wrap');
+  wrap.style.display = wrap.style.display === 'none' ? 'block' : 'none';
+}
+
+async function parseGmapsLink() {
+  const url = el('new-loc-gmaps').value.trim();
+  const status = el('gmaps-status');
+  status.style.display = 'block';
+  status.style.color = 'var(--muted)';
+  status.textContent = '🔍 Membaca koordinat...';
+  if(!url) { status.textContent = '❌ Masukkan link Google Maps dulu'; status.style.color='var(--red)'; return; }
+
+  // Coba ekstrak koordinat langsung dari URL panjang
+  const coords = extractCoordsFromUrl(url);
+  if(coords) {
+    applyCoords(coords.lat, coords.lng, status);
+    return;
+  }
+
+  // Link pendek (maps.app.goo.gl) — tidak bisa di-resolve di browser karena CORS
+  // Tampilkan panduan langkah demi langkah yang benar
+  status.style.color = 'var(--orange)';
+  status.innerHTML = `
+    <div style="margin-bottom:10px">⚠️ <strong>Link pendek tidak mengandung koordinat.</strong></div>
+    <div style="background:rgba(255,255,255,.06);border-radius:10px;padding:12px;font-size:13px;line-height:1.8">
+      <strong style="color:var(--gold)">Cara dapat link panjang:</strong><br>
+      1. Tekan tombol di bawah untuk buka link<br>
+      2. Tunggu Google Maps terbuka di browser<br>
+      3. <strong style="color:var(--text)">Copy URL dari address bar</strong> (bukan dari tombol Share)<br>
+      4. Paste di sini — URL panjang berisi koordinat
+    </div>
+    <a href="${url}" target="_blank"
+       style="display:block;margin-top:10px;padding:10px;background:var(--blue);color:#fff;border-radius:10px;text-align:center;font-weight:800;font-size:14px;text-decoration:none">
+      🗺️ Buka Link di Browser
+    </a>`;
+}
+
+function extractCoordsFromUrl(url) {
+  // Format: @lat,lng,zoom
+  let m = url.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+  if(m) return { lat: parseFloat(m[1]), lng: parseFloat(m[2]) };
+  // Format: ll=lat,lng
+  m = url.match(/[?&]ll=(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+  if(m) return { lat: parseFloat(m[1]), lng: parseFloat(m[2]) };
+  // Format: !3d<lat>!4d<lng>
+  m = url.match(/!3d(-?\d+\.?\d*)!4d(-?\d+\.?\d*)/);
+  if(m) return { lat: parseFloat(m[1]), lng: parseFloat(m[2]) };
+  // Format: q=lat,lng
+  m = url.match(/[?&]q=(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+  if(m) return { lat: parseFloat(m[1]), lng: parseFloat(m[2]) };
+  return null;
+}
+
+function applyCoords(lat, lng, statusEl) {
+  el('new-loc-lat').value = lat.toFixed(6);
+  el('new-loc-lng').value = lng.toFixed(6);
+  if(statusEl) {
+    statusEl.style.color = 'var(--green)';
+    statusEl.textContent = `✅ Koordinat ditemukan: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+  }
+  showToast('Koordinat berhasil diambil dari Maps 🗺️', 'success');
+}
+
+/* ============================================================
+   EXPORT / IMPORT KONFIGURASI JSON
+   ============================================================ */
+function exportConfigJSON() {
+  const s = state.session;
+  const key = s.rw + '_' + s.rt;
+  const rtSettings = ls(KEYS.RT_SETTINGS, {});
+  const allSatpams = ls(KEYS.SATPAM_LIST, {});
+  const allLocs = ls(KEYS.LOCATIONS, {});
+  const allPins = ls(KEYS.LOCAL_PINS, {});
+  const allWa = ls(KEYS.WA_CONFIG, {});
+  const exportData = {
+    _version: 1,
+    _exportedAt: new Date().toISOString(),
+    _rt: key,
+    rtSettings: rtSettings[key] || {},
+    satpams: allSatpams[key] || [],
+    locations: allLocs[key] || [],
+    pins: {
+      // Simpan flag tapi bukan nilai PIN asli untuk keamanan
+      hasAdminPin: !!(allPins[key]?.adminPin),
+      hasSatpamPin: !!(allPins[key]?.satpamPin),
+      adminPin: allPins[key]?.adminPin || '',
+      satpamPin: allPins[key]?.satpamPin || '',
+    },
+    waConfig: allWa[key] || {},
+  };
+  const filename = `patroli-vp_RW${s.rw}-RT${s.rt}_${new Date().toISOString().slice(0,10)}.json`;
+  downloadText(JSON.stringify(exportData, null, 2), filename, 'application/json');
+  showToast('Konfigurasi berhasil di-export ✅', 'success');
+}
+
+function importConfigJSON(e) {
+  const file = e.target.files[0];
+  const statusEl = el('import-status');
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if(!data._version || !data._rt) throw new Error('Format file tidak valid');
+      const s = state.session;
+      const key = s.rw + '_' + s.rt;
+      // Konfirmasi sebelum overwrite
+      const srcRt = data._rt;
+      const msg = `Import data dari ${srcRt === key ? 'RT ini sendiri' : 'RT lain ('+srcRt+')'}?\n\nData satpam, titik patroli, dan konfigurasi WA akan ditimpa.\nPIN ${data.pins?.adminPin ? 'juga akan diupdate.' : 'tidak akan diubah.'}`;
+      if(!confirm(msg)) { e.target.value=''; return; }
+
+      // Import satpams
+      if(Array.isArray(data.satpams)) {
+        const all = ls(KEYS.SATPAM_LIST, {});
+        all[key] = data.satpams;
+        lsSet(KEYS.SATPAM_LIST, all);
+      }
+      // Import locations
+      if(Array.isArray(data.locations)) {
+        const all = ls(KEYS.LOCATIONS, {});
+        all[key] = data.locations;
+        lsSet(KEYS.LOCATIONS, all);
+      }
+      // Import RT settings
+      if(data.rtSettings && Object.keys(data.rtSettings).length) {
+        const all = ls(KEYS.RT_SETTINGS, {});
+        all[key] = { ...data.rtSettings, rw: s.rw, rt: s.rt };
+        lsSet(KEYS.RT_SETTINGS, all);
+      }
+      // Import WA config
+      if(data.waConfig) {
+        const all = ls(KEYS.WA_CONFIG, {});
+        all[key] = data.waConfig;
+        lsSet(KEYS.WA_CONFIG, all);
+      }
+      // Import PIN (opsional, hanya jika ada)
+      if(data.pins?.adminPin || data.pins?.satpamPin) {
+        const allPins = ls(KEYS.LOCAL_PINS, {});
+        if(!allPins[key]) allPins[key] = {};
+        if(data.pins.adminPin) allPins[key].adminPin = data.pins.adminPin;
+        if(data.pins.satpamPin) allPins[key].satpamPin = data.pins.satpamPin;
+        lsSet(KEYS.LOCAL_PINS, allPins);
+      }
+
+      statusEl.style.display = 'block';
+      statusEl.style.background = 'rgba(0,230,118,.1)';
+      statusEl.style.color = 'var(--green)';
+      const satpamCount = (data.satpams||[]).length;
+      const locCount = (data.locations||[]).length;
+      statusEl.textContent = `✅ Import berhasil! ${satpamCount} satpam, ${locCount} titik patroli diimpor.`;
+      showToast('Import berhasil ✅', 'success');
+      renderKomTab('konfigurasi');
+    } catch(err) {
+      statusEl.style.display = 'block';
+      statusEl.style.background = 'rgba(255,68,68,.1)';
+      statusEl.style.color = 'var(--red)';
+      statusEl.textContent = '❌ Gagal import: ' + err.message;
+      showToast('Gagal import file', 'error');
+    }
+    e.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+function openAddLocation() {
+  el('addLocModal-title').textContent = '📍 Tambah Titik Patroli';
+  el('addLocModal-save-btn').textContent = '💾 Simpan & Buat QR';
+  el('edit-loc-id').value = '';
+  el('new-loc-name').value = '';
+  el('new-loc-lat').value = '';
+  el('new-loc-lng').value = '';
+  el('new-loc-radius').value = '50';
+  el('new-loc-gmaps').value = '';
+  el('gmaps-status').style.display = 'none';
+  el('gmaps-input-wrap').style.display = 'none';
+  openModal('addLocModal');
+}
+
+function openEditLocation(id) {
+  const loc = getLocations().find(l => l.id === id);
+  if(!loc) return;
+  // Set modal ke mode edit
+  el('addLocModal-title').textContent = '✏️ Edit Titik Patroli';
+  el('addLocModal-save-btn').textContent = '💾 Simpan Perubahan';
+  el('edit-loc-id').value = id;
+  el('new-loc-name').value = loc.name;
+  el('new-loc-lat').value = loc.lat || '';
+  el('new-loc-lng').value = loc.lng || '';
+  el('new-loc-radius').value = loc.radius || 50;
+  el('new-loc-gmaps').value = '';
+  el('gmaps-status').style.display = 'none';
+  el('gmaps-input-wrap').style.display = 'none';
+  openModal('addLocModal');
+}
+
+function saveLocation() {
+  const name = el('new-loc-name').value.trim();
+  if(!name) { showToast('Isi nama lokasi dulu', 'error'); return; }
+  const lat = parseFloat(el('new-loc-lat').value) || null;
+  const lng = parseFloat(el('new-loc-lng').value) || null;
+  const radius = parseInt(el('new-loc-radius').value) || 50;
+  const editId = el('edit-loc-id').value;
+  const s = state.session;
+
+  if(editId) {
+    // Mode edit — update lokasi yang ada, pertahankan id dan QR yang sudah ada
+    const list = getLocations().map(l => l.id === editId
+      ? { ...l, name, lat, lng, radius }
+      : l
+    );
+    saveLocations(list);
+    showToast('Titik patroli diperbarui ✅', 'success');
+  } else {
+    // Mode tambah baru
+    const loc = { id: uid(), name, rw: s.rw, rt: s.rt, lat, lng, radius, v: 2 };
+    const list = getLocations();
+    list.push(loc);
+    saveLocations(list);
+    showToast('Titik patroli ditambahkan ✅', 'success');
+  }
+
+  closeModal('addLocModal');
+  // Reset modal ke mode tambah untuk berikutnya
+  el('addLocModal-title').textContent = '📍 Tambah Titik Patroli';
+  el('addLocModal-save-btn').textContent = '💾 Simpan & Buat QR';
+  el('edit-loc-id').value = '';
+  el('new-loc-name').value = '';
+  el('new-loc-lat').value = '';
+  el('new-loc-lng').value = '';
+  el('new-loc-radius').value = '50';
+  renderKomTab('master');
+}
+function deleteLocation(id) {
+  if(!confirm('Hapus titik patroli ini?')) return;
+  const list = getLocations().filter(l=>l.id!==id);
+  saveLocations(list);
+  renderKomTab('master');
+  showToast('Titik dihapus', '');
+}
+
+function showQR(locId) {
+  const locs = getLocations();
+  const loc = locs.find(l=>l.id===locId);
+  if(!loc) return;
+  el('qrview-title').textContent = '📍 ' + loc.name;
+  el('qrview-info').textContent = `RW ${loc.rw} / RT ${loc.rt} · Radius ${loc.radius}m`;
+  const canvas = el('qrview-canvas');
+  canvas.innerHTML = '';
+  openModal('qrViewModal');
+  setTimeout(() => {
+    try {
+      new QRCode(canvas, {
+        text: JSON.stringify({ id:loc.id, rw:loc.rw, rt:loc.rt, name:loc.name, lat:loc.lat, lng:loc.lng, radius:loc.radius, v:2 }),
+        width: 200, height: 200, colorDark: '#000', colorLight: '#fff',
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    } catch(e) { canvas.innerHTML = '<div style="color:red">QR gagal dibuat</div>'; }
+  }, 100);
+}
+
+/* ============================================================
+   RESTORE DARI LOGIN SCREEN (untuk install ulang)
+   ============================================================ */
+function restoreFromLoginScreen(e) {
+  const file = e.target.files[0];
+  const statusEl = el('restore-login-status');
+  if(!file) return;
+  statusEl.style.display = 'block';
+  statusEl.style.background = 'rgba(79,195,247,.1)';
+  statusEl.style.color = 'var(--blue)';
+  statusEl.textContent = '⏳ Membaca file backup...';
+
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if(!data._version || !data._rt) throw new Error('Bukan file backup Patroli VP yang valid');
+
+      const key = data._rt;
+      const [rw, rt] = key.split('_');
+
+      // Restore semua data
+      if(Array.isArray(data.satpams) && data.satpams.length > 0) {
+        const all = ls(KEYS.SATPAM_LIST, {});
+        all[key] = data.satpams;
+        lsSet(KEYS.SATPAM_LIST, all);
+      }
+      if(Array.isArray(data.locations) && data.locations.length > 0) {
+        const all = ls(KEYS.LOCATIONS, {});
+        all[key] = data.locations;
+        lsSet(KEYS.LOCATIONS, all);
+      }
+      if(data.rtSettings && Object.keys(data.rtSettings).length) {
+        const all = ls(KEYS.RT_SETTINGS, {});
+        all[key] = { ...data.rtSettings, rw, rt };
+        lsSet(KEYS.RT_SETTINGS, all);
+      }
+      if(data.waConfig) {
+        const all = ls(KEYS.WA_CONFIG, {});
+        all[key] = data.waConfig;
+        lsSet(KEYS.WA_CONFIG, all);
+      }
+      // PIN wajib restore (tanpa ini tidak bisa login)
+      if(data.pins?.adminPin || data.pins?.satpamPin) {
+        const allPins = ls(KEYS.LOCAL_PINS, {});
+        if(!allPins[key]) allPins[key] = {};
+        if(data.pins.adminPin)  allPins[key].adminPin  = data.pins.adminPin;
+        if(data.pins.satpamPin) allPins[key].satpamPin = data.pins.satpamPin;
+        lsSet(KEYS.LOCAL_PINS, allPins);
+      } else {
+        throw new Error('File backup tidak mengandung PIN. Backup tidak dapat digunakan untuk login.');
+      }
+
+      const satpamCount = (data.satpams||[]).length;
+      const locCount    = (data.locations||[]).length;
+      statusEl.style.background = 'rgba(0,230,118,.1)';
+      statusEl.style.color = 'var(--green)';
+      statusEl.innerHTML = `✅ <strong>Restore berhasil!</strong><br>RW ${rw} / RT ${rt} · ${satpamCount} satpam · ${locCount} titik patroli<br><span style="font-weight:400;font-size:12px">Silakan login sekarang dengan PIN yang sama seperti sebelum install ulang</span>`;
+
+      // Isi otomatis kolom RW/RT di login screen
+      const lrw = el('login-rw');
+      const lrt = el('login-rt');
+      if(lrw) lrw.value = parseInt(rw);
+      if(lrt) lrt.value = parseInt(rt);
+
+      showToast('✅ Restore berhasil! Silakan login.', 'success', 5000);
+    } catch(err) {
+      statusEl.style.background = 'rgba(255,68,68,.1)';
+      statusEl.style.color = 'var(--red)';
+      statusEl.textContent = '❌ Gagal restore: ' + err.message;
+      showToast('Gagal restore file', 'error');
+    }
+    e.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+
+function doReset() {
+  if(!state.session) { showToast('Tidak ada sesi aktif', 'error'); return; }
+  const pin = readPin('rstp', 4);
+  const adminPin = getAdminPin(state.session.rw, state.session.rt);
+  if(pin !== adminPin) { showToast('PIN Admin salah', 'error'); clearPin('rstp',4); return; }
+  if(!confirm('YAKIN? Semua data akan HILANG PERMANEN!')) return;
+  Object.values(KEYS).forEach(k => localStorage.removeItem(k));
+  lsSet(KEYS.SESSION, null);
+  closeModal('resetModal');
+  showToast('Data berhasil direset', '');
+  setTimeout(() => location.reload(), 1000);
+}
+
+/* ============================================================
+   FIREBASE
+   ============================================================ */
+function saveFbConfig() {
+  const conf = {
+    apiKey: el('fb-apikey').value.trim(),
+    authDomain: el('fb-authdomain').value.trim(),
+    projectId: el('fb-projectid').value.trim(),
+    appId: el('fb-appid').value.trim(),
+  };
+  if(!conf.apiKey||!conf.projectId) { showToast('Isi API Key dan Project ID', 'error'); return; }
+  lsSet(KEYS.FB_CONFIG, conf);
+  initFirebase(conf);
+  closeModal('fbConfigModal');
+  showToast('Firebase terhubung ✅', 'success');
+  renderKomTab('konfigurasi');
+}
+function disconnectFb() {
+  lsSet(KEYS.FB_CONFIG, null);
+  state.fbDb = null;
+  closeModal('fbConfigModal');
+  showToast('Firebase diputus', '');
+  renderKomTab('konfigurasi');
+}
+function loadFirebaseSDK() {
+  return new Promise((resolve, reject) => {
+    if (window.firebase && window.firebase.firestore) { resolve(); return; }
+    let loaded = 0;
+    const urls = [
+      'https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js',
+      'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js'
+    ];
+    urls.forEach(url => {
+      const s = document.createElement('script');
+      s.src = url;
+      s.onload = () => { loaded++; if(loaded === urls.length) resolve(); };
+      s.onerror = () => reject(new Error('Firebase SDK gagal dimuat'));
+      document.head.appendChild(s);
+    });
+  });
+}
+
+async function initFirebase(conf) {
+  try {
+    await loadFirebaseSDK();
+    // Jika sudah ada app dengan config berbeda, hapus dulu
+    if(state.fbApp) {
+      try { state.fbApp.delete(); } catch(e) {}
+      state.fbApp = null;
+      state.fbDb = null;
+    }
+    state.fbApp = firebase.initializeApp(conf, 'patroli-vp-' + Date.now());
+    state.fbDb = firebase.firestore(state.fbApp);
+  } catch(e) {
+    console.error('Firebase init error:', e);
+    showToast('Gagal memuat Firebase SDK', 'error');
+  }
+}
+function getFbPath(rw, rt) {
+  return `rw/${pad(parseInt(rw))}/rt/${pad(parseInt(rt))}`;
+}
+
+/* ============================================================
+   FIREBASE SYNC FUNCTIONS
+   ============================================================ */
+
+async function fbSet(path, data, silent = true) {
+  if (!state.fbDb) return;
+  try {
+    await state.fbDb.doc(path).set(
+      { ...data, _syncedAt: firebase.firestore.FieldValue.serverTimestamp() },
+      { merge: true }
+    );
+    if (!silent) showToast('☁️ Data tersinkron', 'success', 1500);
+  } catch (e) {
+    console.warn('fbSet failed:', path, e.message);
+    // Silent fail — offline tetap berfungsi
+  }
+}
+
+async function fbSyncCollection(collectionPath, items, idField = 'id') {
+  if (!state.fbDb || !items?.length) return;
+  const batch = state.fbDb.batch();
+  items.forEach(item => {
+    const ref = state.fbDb.collection(collectionPath).doc(item[idField]);
+    batch.set(ref, {
+      ...item,
+      _syncedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+  });
+  try {
+    await batch.commit();
+  } catch (e) {
+    console.warn('fbSyncCollection failed:', collectionPath, e.message);
+  }
+}
+
+async function syncFromFirebase() {
+  if (!state.fbDb) return;
+  const s = state.session;
+  const base = `rw/${s.rw}/rt/${s.rt}`;
+  try {
+    // Shifts
+    const shiftsSnap = await state.fbDb
+      .collection(`${base}/shifts`)
+      .orderBy('startTime', 'desc')
+      .limit(50)
+      .get();
+    if (!shiftsSnap.empty) {
+      const remote = shiftsSnap.docs.map(d => d.data());
+      const local = ls(KEYS.SHIFTS, {});
+      const key = s.rw + '_' + s.rt;
+      const existing = new Set((local[key] || []).map(x => x.id));
+      const newItems = remote.filter(x => !existing.has(x.id));
+      if (newItems.length > 0) {
+        local[key] = [...(local[key] || []), ...newItems]
+          .sort((a, b) => b.startTime - a.startTime);
+        lsSet(KEYS.SHIFTS, local);
+      }
+    }
+    // Incidents
+    const incsSnap = await state.fbDb
+      .collection(`${base}/incidents`)
+      .orderBy('ts', 'desc')
+      .limit(100)
+      .get();
+    if (!incsSnap.empty) {
+      const remote = incsSnap.docs.map(d => d.data());
+      const local = ls(KEYS.INCIDENTS, []);
+      const existing = new Set(local.map(x => x.id));
+      const newItems = remote.filter(x => !existing.has(x.id));
+      if (newItems.length > 0) {
+        lsSet(KEYS.INCIDENTS,
+          [...local, ...newItems].sort((a, b) => b.ts - a.ts));
+      }
+    }
+    // Schedules (Fitur 3)
+    const schedsSnap = await state.fbDb
+      .collection(`${base}/schedules`)
+      .get();
+    if (!schedsSnap.empty) {
+      const remote = schedsSnap.docs.map(d => d.data());
+      const local = ls(KEYS.SCHEDULES, []);
+      const existing = new Set(local.map(x => x.id));
+      const newItems = remote.filter(x => !existing.has(x.id));
+      if (newItems.length > 0) {
+        lsSet(KEYS.SCHEDULES, [...local, ...newItems]);
+      }
+    }
+    lsSet('vp_last_sync', Date.now());
+    updateSyncStatus('synced');
+  } catch (e) {
+    console.warn('syncFromFirebase error:', e.message);
+    updateSyncStatus('error');
+  }
+}
+
+let _fbListeners = [];
+
+function setupRealtimeListeners() {
+  if (!state.fbDb) return;
+  stopRealtimeListeners();
+  const s = state.session;
+  const base = `rw/${s.rw}/rt/${s.rt}`;
+
+  const unsubShifts = state.fbDb
+    .collection(`${base}/shifts`)
+    .orderBy('startTime', 'desc')
+    .limit(20)
+    .onSnapshot(snap => {
+      if (snap.empty) return;
+      const key = s.rw + '_' + s.rt;
+      const local = ls(KEYS.SHIFTS, {});
+      const existing = new Set((local[key] || []).map(x => x.id));
+      let changed = false;
+      snap.docChanges().forEach(change => {
+        if (change.type === 'added' && !existing.has(change.doc.id)) {
+          local[key] = [change.doc.data(), ...(local[key] || [])]
+            .sort((a, b) => b.startTime - a.startTime);
+          changed = true;
+        }
+      });
+      if (changed) {
+        lsSet(KEYS.SHIFTS, local);
+        if (['statistik','jadwal','perbandingan'].includes(state.currentKomTab)) {
+          renderKomTab(state.currentKomTab);
+        }
+        updateSyncStatus('synced');
+      }
+    }, err => console.warn('shifts listener:', err.message));
+
+  const unsubIncs = state.fbDb
+    .collection(`${base}/incidents`)
+    .orderBy('ts', 'desc')
+    .limit(50)
+    .onSnapshot(snap => {
+      if (snap.empty) return;
+      const local = ls(KEYS.INCIDENTS, []);
+      const existing = new Set(local.map(x => x.id));
+      let changed = false;
+      snap.docChanges().forEach(change => {
+        if (change.type === 'added' && !existing.has(change.doc.id)) {
+          local.unshift(change.doc.data());
+          changed = true;
+        }
+      });
+      if (changed) {
+        lsSet(KEYS.INCIDENTS, local.sort((a, b) => b.ts - a.ts));
+        if (state.currentKomTab === 'kejadian') renderKomTab('kejadian');
+        updateSyncStatus('synced');
+      }
+    }, err => console.warn('incidents listener:', err.message));
+
+  _fbListeners = [unsubShifts, unsubIncs];
+}
+
+function stopRealtimeListeners() {
+  _fbListeners.forEach(u => { try { u(); } catch(_) {} });
+  _fbListeners = [];
+}
+
+function updateSyncStatus(status) {
+  // status: 'synced' | 'syncing' | 'offline' | 'error'
+  const icons   = { synced:'☁️', syncing:'⏳', offline:'📵', error:'⚠️' };
+  const labels  = { synced:'Tersinkron', syncing:'Menyinkron...', offline:'Offline', error:'Sync gagal' };
+  const iconEl  = el('sync-status-icon');
+  const labelEl = el('sync-status-label');
+  if (iconEl)  iconEl.textContent = icons[status]  || '📵';
+  if (labelEl) {
+    const last = ls('vp_last_sync');
+    const time = last ? fmtDateTime(last) : 'belum pernah';
+    labelEl.textContent = labels[status] +
+      (status === 'synced' ? ` · ${time}` : '');
+  }
+  // Update indikator di semua header (id unik per screen)
+  ['sync-indicator', 'sync-indicator-komandan', 'sync-indicator-rw'].forEach(indId => {
+    const ind = el(indId);
+    if (ind) {
+      ind.textContent = icons[status] || '📵';
+      ind.classList.toggle('active', status === 'syncing');
+    }
+  });
+}
+
+async function _pushLocalDataToFirebase() {
+  if (!state.fbDb) return;
+  const s = state.session;
+  const key = s.rw + '_' + s.rt;
+  const base = `rw/${s.rw}/rt/${s.rt}`;
+  const shifts    = (ls(KEYS.SHIFTS, {})[key] || []).slice(0, 50);
+  const incs      = ls(KEYS.INCIDENTS, []).filter(i => i.rw===s.rw && i.rt===s.rt);
+  const schedules = ls(KEYS.SCHEDULES, []);
+  await fbSyncCollection(`${base}/shifts`,    shifts);
+  await fbSyncCollection(`${base}/incidents`, incs);
+  await fbSyncCollection(`${base}/schedules`, schedules);
+}
+
+/* ============================================================
+   KETUA RW SCREEN
+   ============================================================ */
+/* FITUR BARU: Dashboard Ketua RW lengkap */
+function initKetuaRWScreen() {
+  const s = state.session;
+  el('hdr-badge-rw').textContent = 'RW '+s.rw;
+  renderRWDashboard('overview');
+}
+
+function renderRWDashboard(tab) {
+  tab = tab || 'overview';
+  const s = state.session;
+  const pins = ls(KEYS.LOCAL_PINS, {});
+  const rtSettings = ls(KEYS.RT_SETTINGS, {});
+  const rtKeys = Object.keys(pins).filter(k => {
+    const [kRw] = k.split('_');
+    return kRw === s.rw || kRw === String(parseInt(s.rw));
+  });
+  const content = el('rw-dashboard-content');
+  const allShifts = ls(KEYS.SHIFTS, {});
+  const allIncs = ls(KEYS.INCIDENTS, []);
+  const curShift = ls(KEYS.CURRENT_SHIFT);
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  const tabs = ['overview','kejadian','status','firebase'];
+  const tabLabels = ['📊 Overview','⚠️ Kejadian','📋 Status RT','🔥 Firebase'];
+
+  const tabHtml = `<div class="tab-scroll" style="margin-bottom:14px;padding:8px 0">
+    ${tabs.map((t,i) => `<button onclick="renderRWDashboard('${t}')" class="tab-btn ${tab===t?'active':''}">${tabLabels[i]}</button>`).join('')}
+    <button class="tab-btn" onclick="renderRWDashboard('${tab}')">↻ Refresh</button>
+  </div>`;
+
+  let bodyHtml = '';
+
+  if(tab === 'overview') {
+    // Hitung statistik hari ini
+    const shiftsToday = Object.values(allShifts).flat().filter(sh => sh.startTime >= today.getTime() && rtKeys.some(k=>k===sh.rw+'_'+sh.rt));
+    const incsToday = allIncs.filter(i => i.ts >= today.getTime() && rtKeys.some(k=>k===i.rw+'_'+i.rt));
+    const activeRTs = rtKeys.filter(k => curShift && k === curShift.rw+'_'+curShift.rt);
+    const notStarted = rtKeys.length - activeRTs.length;
+
+    bodyHtml = `
+      <div class="stat-grid stat-grid-3" style="grid-template-columns:1fr 1fr;margin-bottom:14px">
+        <div class="stat-box"><div class="stat-val">${shiftsToday.length}</div><div class="stat-lbl">Shift Hari Ini</div></div>
+        <div class="stat-box"><div class="stat-val" style="color:var(--red)">${incsToday.length}</div><div class="stat-lbl">Kejadian Hari Ini</div></div>
+        <div class="stat-box"><div class="stat-val" style="color:var(--green)">${activeRTs.length}</div><div class="stat-lbl">RT Aktif</div></div>
+        <div class="stat-box"><div class="stat-val" style="color:var(--muted)">${notStarted}</div><div class="stat-lbl">RT Belum Mulai</div></div>
+      </div>
+      <div class="title-section" style="margin-bottom:10px">Status per RT</div>
+      ${rtKeys.length===0?'<div class="body-text text-center" style="padding:40px">Belum ada RT terdaftar dalam RW ini</div>':
+      rtKeys.map(key => {
+        const [rw, rt] = key.split('_');
+        const rtInfo = rtSettings[key] || {};
+        const isActive = curShift && curShift.rw===rw && curShift.rt===rt;
+        const rtShifts = (allShifts[key]||[]);
+        const shiftToday = rtShifts.filter(sh=>sh.startTime>=today.getTime()).length;
+        const incCount = allIncs.filter(i=>i.rw===rw&&i.rt===rt&&i.ts>=today.getTime()).length;
+        return `<div class="rw-rt-card">
+          <div class="rt-icon">🏘️</div>
+          <div class="rt-info">
+            <div class="rt-name">${rtInfo.rtname||'RT '+rt} (RT ${rt})</div>
+            <div class="rt-meta">Komandan: ${rtInfo.komname||'–'}</div>
+            <div class="rt-meta">Hari ini: ${shiftToday} shift · ${incCount} kejadian</div>
+          </div>
+          <span class="rt-status ${isActive?'on':'off'}">${isActive?'🟢 Aktif':'⚫ Off'}</span>
+        </div>`;
+      }).join('')}`;
+  } else if(tab === 'kejadian') {
+    const incsRW = allIncs.filter(i => rtKeys.some(k=>{const[r]=k.split('_');return r===i.rw||(i.rw===s.rw)}));
+    let filter = 'all';
+    bodyHtml = `
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+        <button class="tab-btn active" onclick="_rwIncFilter('all')">Semua (${incsRW.length})</button>
+        <button class="tab-btn" onclick="_rwIncFilter('darurat')">🔴 Darurat</button>
+        <button class="tab-btn" onclick="_rwIncFilter('pending')">⏳ Belum Selesai</button>
+      </div>
+      <div id="rw-inc-list">
+        ${incsRW.length===0?'<div class="body-text text-center" style="padding:40px">Belum ada kejadian</div>':
+        incsRW.slice(0,50).map(inc=>{
+          const sevColor=inc.severity==='Berat'?'var(--red)':inc.severity==='Sedang'?'var(--orange)':'var(--green)';
+          return `<div class="shift-card">
+            <div class="sh-head">
+              <span class="sh-name" style="color:${sevColor}">⚠️ ${inc.type}</span>
+              <span class="sh-badge" style="color:${sevColor};border-color:${sevColor}">${inc.severity}</span>
+            </div>
+            <div class="sh-meta">👮 ${inc.satpamName} · RT ${inc.rt} · 🕐 ${fmtDateTime(inc.ts)}</div>
+            ${inc.desc?`<div style="font-size:12px;margin-top:4px">${inc.desc}</div>`:''}
+          </div>`;
+        }).join('')}
+      </div>`;
+  } else if(tab === 'status') {
+    bodyHtml = `
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead><tr style="color:var(--muted);text-align:left">
+            <th style="padding:8px 6px;border-bottom:1px solid var(--border)">RT</th>
+            <th style="padding:8px 6px;border-bottom:1px solid var(--border)">Shift Hari Ini</th>
+            <th style="padding:8px 6px;border-bottom:1px solid var(--border)">Coverage</th>
+            <th style="padding:8px 6px;border-bottom:1px solid var(--border)">Kejadian</th>
+          </tr></thead>
+          <tbody>
+          ${rtKeys.map(key => {
+            const [rw, rt] = key.split('_');
+            const rtInfo = rtSettings[key] || {};
+            const rtShifts = (allShifts[key]||[]).filter(sh=>sh.startTime>=today.getTime());
+            const locs = (ls(KEYS.LOCATIONS,{})[key]||[]);
+            const avgPct = rtShifts.length && locs.length
+              ? Math.round(rtShifts.reduce((a,sh)=>a+(sh.checkedLocs||[]).length/locs.length*100,0)/rtShifts.length)
+              : 0;
+            const incCount = allIncs.filter(i=>i.rw===rw&&i.rt===rt&&i.ts>=today.getTime()).length;
+            return `<tr style="border-bottom:1px solid var(--border)">
+              <td style="padding:8px 6px">${rtInfo.rtname||'RT '+rt}</td>
+              <td style="padding:8px 6px">${rtShifts.length}</td>
+              <td style="padding:8px 6px">${avgPct}%</td>
+              <td style="padding:8px 6px${incCount>0?';color:var(--red)':''}">${incCount}</td>
+            </tr>`;
+          }).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  } else if(tab === 'firebase') {
+    const fbConf = ls(KEYS.FB_CONFIG, null);
+    bodyHtml = `
+      <div class="card">
+        <div class="card-title">🔥 Firebase Sync</div>
+        <div class="body-text" style="margin-bottom:12px">${fbConf ? `✅ Terhubung: <strong>${fbConf.projectId}</strong>` : '❌ Belum terhubung. Data hanya tersimpan di HP ini.'}</div>
+        <button class="btn btn-gold sm" onclick="openModal('fbConfigModal')">⚙️ Konfigurasi Firebase</button>
+        ${fbConf ? `<button class="btn btn-green sm" onclick="manualSync()">☁️ Sync Sekarang</button>` : ''}
+        ${fbConf ? `<button class="btn btn-red sm" onclick="disconnectFb();renderRWDashboard('firebase')">⛔ Putuskan Firebase</button>` : ''}
+      </div>
+      <div class="card-info">
+        💡 Firebase memungkinkan data patroli dari semua RT tersinkron ke cloud secara real-time. Tanpa Firebase, data hanya ada di HP masing-masing.
+      </div>`;
+  }
+
+  content.innerHTML = tabHtml + bodyHtml;
+}
+
+function _rwIncFilter(type) {
+  const s = state.session;
+  const pins = ls(KEYS.LOCAL_PINS, {});
+  const rtKeys = Object.keys(pins).filter(k => {
+    const [kRw] = k.split('_');
+    return kRw === s.rw || kRw === String(parseInt(s.rw));
+  });
+  const allIncs = ls(KEYS.INCIDENTS, []);
+  const incsRW = allIncs.filter(i => rtKeys.some(k=>{const[r]=k.split('_');return r===i.rw||(i.rw===s.rw)}));
+  let filtered = incsRW;
+  if(type === 'darurat') filtered = incsRW.filter(i => i.severity === 'Berat');
+  else if(type === 'pending') filtered = incsRW.filter(i => !i.resolved);
+  document.querySelectorAll('#rw-dashboard-content .tab-btn').forEach(b => {
+    b.classList.toggle('active', (b.getAttribute('onclick')||'').includes("'"+type+"'"));
+  });
+  const list = document.getElementById('rw-inc-list');
+  if(!list) return;
+  if(filtered.length === 0) {
+    list.innerHTML = '<div class="body-text text-center" style="padding:40px">Tidak ada kejadian</div>';
+    return;
+  }
+  list.innerHTML = filtered.slice(0,50).map(inc=>{
+    const sevColor=inc.severity==='Berat'?'var(--red)':inc.severity==='Sedang'?'var(--orange)':'var(--green)';
+    return `<div class="shift-card">
+      <div class="sh-head">
+        <span class="sh-name" style="color:${sevColor}">⚠️ ${inc.type}</span>
+        <span class="sh-badge" style="color:${sevColor};border-color:${sevColor}">${inc.severity}</span>
+      </div>
+      <div class="sh-meta">👮 ${inc.satpamName} · RT ${inc.rt} · 🕐 ${fmtDateTime(inc.ts)}</div>
+      ${inc.desc?`<div style="font-size:12px;margin-top:4px">${inc.desc}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+/* ============================================================
+   CONFETTI
+   ============================================================ */
+function startConfetti() {
+  const canvas = el('confetti-canvas');
+  canvas.style.display = 'block';
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const particles = Array.from({length:100}, () => ({
+    x: Math.random()*canvas.width, y: Math.random()*canvas.height-canvas.height,
+    r: Math.random()*6+4, d: Math.random()*100,
+    color: ['#ffc832','#00e676','#b478ff','#4fc3f7','#ff8c00'][Math.floor(Math.random()*5)],
+    tilt: Math.random()*10-10, tiltAngle: 0, tiltAngleIncremental: Math.random()*0.07+0.05
+  }));
+  let frame = 0;
+  function draw() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    particles.forEach(p => {
+      p.tiltAngle += p.tiltAngleIncremental;
+      p.y += (Math.cos(p.d)+3+p.r/2)/2;
+      p.tilt = Math.sin(p.tiltAngle) * 15;
+      ctx.beginPath();
+      ctx.lineWidth = p.r/2;
+      ctx.strokeStyle = p.color;
+      ctx.moveTo(p.x+p.tilt+p.r/3, p.y);
+      ctx.lineTo(p.x+p.tilt, p.y+p.tilt+p.r/5);
+      ctx.stroke();
+    });
+    frame++;
+    if(frame < 200) requestAnimationFrame(draw);
+    else { ctx.clearRect(0,0,canvas.width,canvas.height); canvas.style.display='none'; }
+  }
+  draw();
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+function init() {
+  initAllPinInputs();
+  // Try to restore Firebase
+  const fbConf = ls(KEYS.FB_CONFIG, null);
+  if(fbConf) initFirebase(fbConf);
+  // Check session
+  const session = ls(KEYS.SESSION, null);
+  if(session && session.role) {
+    state.session = session;
+    hideAllOnboarding();
+    enterApp();
+  } else {
+    // Check if any RT is registered
+    const pins = ls(KEYS.LOCAL_PINS, {});
+    if(Object.keys(pins).length > 0) {
+      hideAllOnboarding();
+      showScreen('screenLogin');
+    }
+    // else: onboarding ob0 is already shown
+  }
+  // Register service worker
+  if('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  }
+  safeCreateIcons();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Push initial state agar back button punya history untuk pop
+  history.replaceState({ screen: 'init' }, '', '');
+  init();
+});
+</script>
+</body>
+</html>

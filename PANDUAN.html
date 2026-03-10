@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Panduan Patroli VP v1.0</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#f5f7fa;color:#1a2332;font-size:16px;line-height:1.7}
+.header{background:linear-gradient(135deg,#071428,#0c1d36);color:#ffc832;text-align:center;padding:40px 20px 32px}
+.header h1{font-size:28px;font-weight:900;margin-bottom:6px}
+.header p{color:#6b8aad;font-size:15px}
+.header .badge{display:inline-block;background:#ffc832;color:#1a0d00;font-weight:900;font-size:13px;padding:4px 14px;border-radius:99px;margin-top:10px}
+.container{max-width:700px;margin:0 auto;padding:24px 16px 60px}
+.section{background:#fff;border-radius:18px;padding:24px;margin-bottom:20px;box-shadow:0 2px 12px rgba(0,0,0,.07)}
+.section-title{font-size:20px;font-weight:900;color:#071428;margin-bottom:16px;display:flex;align-items:center;gap:10px}
+.section-title .icon{font-size:26px}
+.step{display:flex;gap:14px;margin-bottom:18px;align-items:flex-start}
+.step-num{min-width:36px;height:36px;background:#ffc832;color:#1a0d00;border-radius:50%;font-weight:900;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.step-body{}
+.step-body strong{display:block;font-size:16px;font-weight:800;color:#071428;margin-bottom:4px}
+.step-body p{font-size:14px;color:#4a5568;line-height:1.7}
+.tip{background:#fffbeb;border:1.5px solid #fcd34d;border-radius:12px;padding:14px 16px;margin:12px 0;font-size:14px;color:#78350f}
+.tip strong{color:#92400e}
+.warn{background:#fff5f5;border:1.5px solid #fc8181;border-radius:12px;padding:14px 16px;margin:12px 0;font-size:14px;color:#742a2a}
+.info{background:#ebf8ff;border:1.5px solid #90cdf4;border-radius:12px;padding:14px 16px;margin:12px 0;font-size:14px;color:#2c5282}
+.role-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin:16px 0}
+@media(max-width:500px){.role-grid{grid-template-columns:1fr}}
+.role-card{border-radius:14px;padding:16px;text-align:center}
+.role-card .icon{font-size:32px;margin-bottom:8px}
+.role-card strong{display:block;font-size:15px;font-weight:900;margin-bottom:4px}
+.role-card p{font-size:12px;line-height:1.5}
+.role-satpam{background:#fffbeb;border:2px solid #fcd34d}
+.role-komandan{background:#f5f3ff;border:2px solid #c4b5fd}
+.role-rw{background:#ebf8ff;border:2px solid #90cdf4}
+.big-step{background:#071428;color:#ffc832;border-radius:14px;padding:20px;margin-bottom:14px}
+.big-step .num{font-size:36px;font-weight:900;line-height:1}
+.big-step strong{display:block;font-size:18px;font-weight:900;color:#fff;margin:6px 0 4px}
+.big-step p{font-size:13px;color:#6b8aad;line-height:1.6}
+table{width:100%;border-collapse:collapse;font-size:14px;margin:12px 0}
+th{background:#071428;color:#ffc832;padding:10px 12px;text-align:left;font-weight:800}
+td{padding:10px 12px;border-bottom:1px solid #e2e8f0}
+tr:last-child td{border-bottom:none}
+tr:nth-child(even){background:#f8f9fb}
+.faq-item{border-bottom:1px solid #e2e8f0;padding:14px 0}
+.faq-item:last-child{border-bottom:none}
+.faq-q{font-weight:800;color:#071428;margin-bottom:6px}
+.faq-a{font-size:14px;color:#4a5568}
+h2{font-size:18px;font-weight:900;color:#071428;margin:20px 0 12px}
+.toc{background:#f0f4ff;border-radius:14px;padding:16px 20px;margin-bottom:20px}
+.toc a{display:block;color:#2563eb;text-decoration:none;padding:4px 0;font-size:14px;font-weight:600}
+.toc a:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="header">
+  <div style="font-size:48px;margin-bottom:12px">🛡️</div>
+  <h1>PANDUAN PATROLI VP</h1>
+  <p>Villa Pertiwi · Depok</p>
+  <div class="badge">Versi 1.0 · Panduan Lengkap</div>
+</div>
+
+<div class="container">
+
+  <!-- DAFTAR ISI -->
+  <div class="toc">
+    <div style="font-weight:900;font-size:15px;margin-bottom:8px;color:#071428">📋 Daftar Isi</div>
+    <a href="#apa-itu">1. Apa itu Patroli VP?</a>
+    <a href="#peran">2. Tiga Peran Pengguna</a>
+    <a href="#install">3. Cara Install di HP</a>
+    <a href="#setup-komandan">4. Setup Pertama (Komandan)</a>
+    <a href="#login-satpam">5. Login sebagai Satpam</a>
+    <a href="#mulai-shift">6. Cara Mulai Shift Patroli</a>
+    <a href="#scan-qr">7. Cara Scan QR Code</a>
+    <a href="#laporan">8. Cara Lapor Kejadian</a>
+    <a href="#backup">9. Cara Backup Data</a>
+    <a href="#faq">10. Pertanyaan Umum (FAQ)</a>
+  </div>
+
+  <!-- APA ITU -->
+  <div class="section" id="apa-itu">
+    <div class="section-title"><span class="icon">🛡️</span>1. Apa itu Patroli VP?</div>
+    <p style="margin-bottom:14px">Patroli VP adalah <strong>aplikasi di HP</strong> untuk membantu satpam melakukan patroli dengan lebih teratur dan terdata. Semua laporan langsung tersimpan dan bisa dilihat Komandan.</p>
+    <div class="info">💡 Aplikasi ini <strong>tidak perlu didownload dari Play Store</strong>. Cukup buka link di browser, lalu install ke homescreen HP.</div>
+  </div>
+
+  <!-- PERAN -->
+  <div class="section" id="peran">
+    <div class="section-title"><span class="icon">👥</span>2. Tiga Peran Pengguna</div>
+    <div class="role-grid">
+      <div class="role-card role-satpam">
+        <div class="icon">👮</div>
+        <strong>Satpam</strong>
+        <p>Melakukan patroli, scan QR, lapor kejadian</p>
+      </div>
+      <div class="role-card role-komandan">
+        <div class="icon">⭐</div>
+        <strong>Komandan / Ketua RT</strong>
+        <p>Setting app, lihat laporan, kelola jadwal</p>
+      </div>
+      <div class="role-card role-rw">
+        <div class="icon">🏠</div>
+        <strong>Ketua RW</strong>
+        <p>Pantau semua RT dalam satu RW</p>
+      </div>
+    </div>
+    <div class="tip">🔑 <strong>Komandan harus setup dulu</strong> sebelum satpam bisa login. Setup dilakukan sekali saja.</div>
+  </div>
+
+  <!-- INSTALL -->
+  <div class="section" id="install">
+    <div class="section-title"><span class="icon">📱</span>3. Cara Install di HP Android</div>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <strong>Buka browser Chrome atau Brave</strong>
+        <p>Jangan gunakan browser bawaan Samsung atau browser lain. Chrome atau Brave yang paling bagus.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <strong>Buka link aplikasi</strong>
+        <p>Ketik atau tap link yang diberikan Komandan di address bar browser. Contoh: <code style="background:#f0f4ff;padding:2px 6px;border-radius:4px">mitrawashlaundry-code.github.io/patroli-vp</code></p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <strong>Tap menu titik tiga (⋮)</strong>
+        <p>Ada di pojok kanan atas browser.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <strong>Tap "Tambahkan ke layar utama" atau "Install app"</strong>
+        <p>Tap <strong>Install</strong> atau <strong>Tambah</strong> saat diminta konfirmasi.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-body">
+        <strong>Selesai! Icon muncul di homescreen</strong>
+        <p>Selanjutnya buka aplikasi langsung dari icon tersebut, tidak perlu buka browser lagi.</p>
+      </div>
+    </div>
+    <div class="tip">📵 Setelah diinstall, aplikasi bisa dipakai <strong>tanpa internet</strong> (mode offline).</div>
+  </div>
+
+  <!-- SETUP KOMANDAN -->
+  <div class="section" id="setup-komandan">
+    <div class="section-title"><span class="icon">⭐</span>4. Setup Pertama — Khusus Komandan</div>
+    <p style="margin-bottom:16px">Langkah ini hanya dilakukan <strong>sekali</strong> oleh Komandan/Ketua RT saat pertama kali pakai.</p>
+
+    <div class="big-step">
+      <div class="num">01</div>
+      <strong>Buka aplikasi → tap "+ Daftarkan RT Baru"</strong>
+      <p>Pilih peran <strong>Komandan/Ketua RT</strong> → pilih <strong>RT Baru</strong></p>
+    </div>
+    <div class="big-step">
+      <div class="num">02</div>
+      <strong>Isi Nomor RW dan RT</strong>
+      <p>Contoh: RW = 16, RT = 06</p>
+    </div>
+    <div class="big-step">
+      <div class="num">03</div>
+      <strong>Isi Data RT</strong>
+      <p>Nama RT, nama Komandan, nomor WhatsApp Komandan, nomor WA grup RT</p>
+    </div>
+    <div class="big-step">
+      <div class="num">04</div>
+      <strong>Buat PIN</strong>
+      <p><strong>PIN Admin 4 digit</strong> (untuk Komandan) dan <strong>PIN Satpam 6 digit</strong> (dibagikan ke satpam). Catat dan simpan baik-baik!</p>
+    </div>
+    <div class="big-step">
+      <div class="num">05</div>
+      <strong>Periksa data → Simpan</strong>
+      <p>Tap <strong>Simpan & Mulai</strong>. Selesai! Masuk otomatis sebagai Komandan.</p>
+    </div>
+
+    <div style="margin-top:20px"><strong style="font-size:16px">Setelah masuk sebagai Komandan, lanjutkan:</strong></div>
+    <div class="step" style="margin-top:14px">
+      <div class="step-num">A</div>
+      <div class="step-body">
+        <strong>Tambah nama satpam</strong>
+        <p>Tab <strong>👥 Data Master</strong> → tap <strong>+ Tambah Satpam</strong> → isi nama → Simpan. Ulangi untuk semua satpam.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">B</div>
+      <div class="step-body">
+        <strong>Tambah titik patroli</strong>
+        <p>Tab <strong>👥 Data Master</strong> → tap <strong>+ Tambah Titik</strong> → isi nama lokasi → Simpan. QR Code otomatis terbuat.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">C</div>
+      <div class="step-body">
+        <strong>Print atau tampilkan QR Code</strong>
+        <p>Tap ikon 📱 di sebelah nama lokasi → muncul QR Code → screenshot → print dan tempel di titik patroli.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">D</div>
+      <div class="step-body">
+        <strong>Bagikan PIN Satpam ke satpam</strong>
+        <p>Beritahu PIN 6 digit, nomor RW, dan nomor RT kepada setiap satpam.</p>
+      </div>
+    </div>
+    <div class="warn">⚠️ <strong>Jangan lupa backup!</strong> Setelah setup, masuk ke <strong>Konfigurasi → Export JSON</strong> dan simpan file backup. File ini digunakan jika HP hilang atau perlu install ulang.</div>
+  </div>
+
+  <!-- LOGIN SATPAM -->
+  <div class="section" id="login-satpam">
+    <div class="section-title"><span class="icon">🔑</span>5. Login sebagai Satpam</div>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <strong>Buka aplikasi</strong>
+        <p>Tap icon Patroli VP di homescreen.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <strong>Isi Nomor RW dan RT</strong>
+        <p>Isi sesuai yang diberitahu Komandan. Contoh: RW = 16, RT = 06.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <strong>Tap tombol kuning 👮 SATPAM / PETUGAS</strong>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <strong>Pilih nama Anda dari daftar</strong>
+        <p>Tap nama Anda. Jika nama tidak ada, hubungi Komandan.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-body">
+        <strong>Masukkan PIN 6 digit</strong>
+        <p>Isi kotak-kotak PIN satu per satu. Tap <strong>🔓 Masuk</strong>.</p>
+      </div>
+    </div>
+    <div class="tip">💡 Setelah login sekali, aplikasi akan <strong>ingat Anda</strong>. Tidak perlu login lagi setiap buka aplikasi.</div>
+  </div>
+
+  <!-- MULAI SHIFT -->
+  <div class="section" id="mulai-shift">
+    <div class="section-title"><span class="icon">▶️</span>6. Cara Mulai Shift Patroli</div>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <strong>Tap tombol besar ▶ MULAI SHIFT</strong>
+        <p>Ada di halaman utama setelah login.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <strong>Pilih nama Anda</strong>
+        <p>Tap nama Anda dari daftar. Jika patroli berdua, pilih juga nama satpam kedua.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <strong>Tap ▶ MULAI SEKARANG</strong>
+        <p>Timer langsung berjalan. Kamera otomatis aktif untuk scan QR.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <strong>Lakukan patroli keliling</strong>
+        <p>Kunjungi setiap titik patroli dan scan QR Code yang ditempel di sana.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-body">
+        <strong>Selesai → tap ✅ SELESAI & KIRIM WA</strong>
+        <p>Laporan otomatis dikirim ke WhatsApp Komandan.</p>
+      </div>
+    </div>
+    <div class="tip">⏱️ Timer tetap berjalan meski HP dikunci atau aplikasi ditutup. Tidak perlu khawatir.</div>
+  </div>
+
+  <!-- SCAN QR -->
+  <div class="section" id="scan-qr">
+    <div class="section-title"><span class="icon">📷</span>7. Cara Scan QR Code di Titik Patroli</div>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <strong>Saat shift aktif, kamera sudah otomatis hidup</strong>
+        <p>Lihat bagian <strong>📷 Scanner QR Patroli</strong> di halaman patroli.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <strong>Arahkan kamera ke kertas QR Code</strong>
+        <p>Posisikan HP agar QR Code masuk dalam kotak panduan di layar. Jarak ideal: 15–30 cm.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <strong>Tunggu bunyi/getar — titik otomatis tercentang ✅</strong>
+        <p>Nama titik muncul di checklist bawah dengan tanda centang hijau.</p>
+      </div>
+    </div>
+    <div class="warn">⚠️ Jika kamera tidak aktif, tap <strong>Aktifkan izin kamera</strong> yang muncul. Jika diminta izin kamera oleh HP, tap <strong>Izinkan</strong>.</div>
+    <div class="tip">🌙 Pakai fitur 🔦 <strong>Senter</strong> (tombol kecil di header) untuk scan di tempat gelap.</div>
+  </div>
+
+  <!-- LAPORAN KEJADIAN -->
+  <div class="section" id="laporan">
+    <div class="section-title"><span class="icon">🚨</span>8. Cara Lapor Kejadian Darurat</div>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <strong>Tap tombol merah 🚨 LAPORKAN KEJADIAN</strong>
+        <p>Bisa dilakukan kapan saja, bahkan saat tidak ada shift aktif.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <strong>Pilih jenis kejadian</strong>
+        <p>Tap salah satu: Pencurian, Keributan, Kebakaran, Orang Asing, Kecelakaan, atau Lainnya.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <strong>Pilih tingkat keparahan</strong>
+        <p>🟢 Ringan / 🟡 Sedang / 🔴 Berat</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <strong>Isi deskripsi (boleh kosong)</strong>
+        <p>Ceritakan singkat apa yang terjadi.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-body">
+        <strong>Tap 📤 Kirim Laporan</strong>
+        <p>Laporan otomatis dikirim ke WhatsApp Komandan.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- BACKUP -->
+  <div class="section" id="backup">
+    <div class="section-title"><span class="icon">💾</span>9. Cara Backup dan Restore Data</div>
+    <h2>Backup (simpan data)</h2>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body"><strong>Login sebagai Komandan</strong></div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body"><strong>Tab ⚙️ Konfigurasi → tap ⬇️ Export JSON</strong></div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <strong>File tersimpan otomatis di folder Download HP</strong>
+        <p>Namanya seperti: <code style="background:#f0f4ff;padding:2px 6px;border-radius:4px">patroli-vp_RW16-RT06_2026-03-10.json</code></p>
+      </div>
+    </div>
+    <div class="tip">📅 Disarankan backup <strong>minimal seminggu sekali</strong> dan simpan file-nya di Google Drive atau WhatsApp ke diri sendiri.</div>
+
+    <h2>Restore (setelah install ulang)</h2>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body"><strong>Buka aplikasi → di halaman login, tap tombol hijau ⬆️ Restore dari Backup JSON</strong></div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body"><strong>Pilih file backup .json dari folder Download</strong></div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <strong>Tunggu konfirmasi "✅ Restore berhasil"</strong>
+        <p>RW dan RT otomatis terisi. Login seperti biasa.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAQ -->
+  <div class="section" id="faq">
+    <div class="section-title"><span class="icon">❓</span>10. Pertanyaan Umum (FAQ)</div>
+
+    <div class="faq-item">
+      <div class="faq-q">HP saya ganti baru, bagaimana data lamanya?</div>
+      <div class="faq-a">Selama ada file backup JSON, restore data sangat mudah. Tap tombol hijau "Restore dari Backup JSON" di halaman login, pilih file backup, selesai.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">Aplikasi tidak bisa dibuka / blank putih</div>
+      <div class="faq-a">Coba: (1) Hapus data browser Chrome → Settings → Apps → Chrome → Clear data. (2) Buka ulang link aplikasi. (3) Install ulang dari link, lalu restore backup.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">Lupa PIN Admin</div>
+      <div class="faq-a">PIN tersimpan di file backup JSON. Hubungi sesama Komandan yang punya akses, atau reset data dan setup ulang (data akan hilang jika tidak ada backup).</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">Kamera tidak bisa scan QR</div>
+      <div class="faq-a">Cek izin kamera: Settings HP → Apps → Brave/Chrome → Permissions → Camera → Allow. Pastikan QR Code tercetak jelas, tidak kusut, dan cahaya cukup.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">Laporan WA tidak terkirim otomatis</div>
+      <div class="faq-a">Pastikan nomor WhatsApp Komandan sudah diisi di menu Konfigurasi → WhatsApp. Nomor harus format internasional: 628xxxxxxxx (tanpa + atau spasi).</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">Apakah butuh internet terus menerus?</div>
+      <div class="faq-a">Tidak. Setelah diinstall, aplikasi berjalan offline. Internet hanya dibutuhkan untuk kirim laporan WhatsApp dan sinkronisasi Firebase (jika diaktifkan).</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">Berapa banyak RT yang bisa didaftarkan?</div>
+      <div class="faq-a">Tidak terbatas. Setiap RT didaftarkan dengan PIN masing-masing. Ketua RW bisa memantau semua RT dalam satu RW dari satu tampilan dashboard.</div>
+    </div>
+  </div>
+
+  <!-- KONTAK -->
+  <div class="section" style="background:#071428;color:#e8f4ff">
+    <div class="section-title" style="color:#ffc832"><span class="icon">📞</span>Butuh Bantuan?</div>
+    <p style="color:#6b8aad;font-size:14px">Hubungi Komandan atau Ketua RT Anda untuk bantuan teknis penggunaan aplikasi ini.</p>
+    <div style="margin-top:12px;font-size:13px;color:#4a5568">Patroli VP v1.0 · Villa Pertiwi Depok · 2026</div>
+  </div>
+
+</div>
+</body>
+</html>
